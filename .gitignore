@@ -30,3 +30,5 @@
 *.exe
 *.out
 *.app
+/.vs/VisBuffer
+/packages/Microsoft.Direct3D.D3D12.1.615.1
