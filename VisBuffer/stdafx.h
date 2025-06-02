@@ -31,3 +31,5 @@
 #include <string>
 #include <wrl.h>
 #include <shellapi.h>
+
+static constexpr D3D12_GPU_VIRTUAL_ADDRESS D3D12_GPU_VIRTUAL_ADDRESS_NULL = static_cast<D3D12_GPU_VIRTUAL_ADDRESS>(0); 

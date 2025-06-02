@@ -45,6 +45,7 @@ private:
     D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
 
 
+
     //sync objects
     ::uint32_t frameIndex = 0;
     HANDLE fenceEvent;

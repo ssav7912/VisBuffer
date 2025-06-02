@@ -131,7 +131,10 @@
   <ItemGroup>
     <ClInclude Include="ApplicationHelpers.h" />
     <ClInclude Include="DXApplication.h" />
+    <ClInclude Include="GeometryHeap.h" />
+    <ClInclude Include="GPUResource.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="UploadBuffer.h" />
     <ClInclude Include="VisBuffer.h" />
     <ClInclude Include="Win32Application.h" />
   </ItemGroup>
@@ -140,6 +143,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DXApplication.cpp" />
+    <ClCompile Include="GeometryHeap.cpp" />
+    <ClCompile Include="GPUResource.cpp" />
+    <ClCompile Include="UploadBuffer.cpp" />
     <ClCompile Include="VisBuffer.cpp" />
     <ClCompile Include="Win32Application.cpp" />
   </ItemGroup>
