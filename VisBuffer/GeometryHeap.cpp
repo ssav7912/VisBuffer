@@ -68,7 +68,7 @@ void GeometryHeap::AddMesh(std::vector<Vertex>& vertices, ID3D12GraphicsCommandL
 	MeshData.push_back(newMesh);
 
 	//TODO: expand the heap if mesh is too large. 
-	ASSERT(destinationOffset + VerticesSize < BufferSize); 
+	ASSERT((destinationOffset + VerticesSize) < BufferSize);
 	
 	//geometryheap invariant is that resource is only ever used for copy dest or as a vertex buffer
 	ASSERT(UsageState == D3D12_RESOURCE_STATE_COPY_DEST || UsageState == D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER); 

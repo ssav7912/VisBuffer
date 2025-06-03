@@ -32,6 +32,7 @@ public:
 
 	void AddMesh(std::vector<Vertex>& vertices, ID3D12GraphicsCommandList2* CommandList);
 
+	const std::vector<D3D12_VERTEX_BUFFER_VIEW>& GetVertexBuffers() const { return VBVs; };
 
 private:
 	std::vector<Mesh> MeshData;
