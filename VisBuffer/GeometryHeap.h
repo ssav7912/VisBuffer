@@ -26,14 +26,15 @@ struct Mesh
 class GeometryHeap : public GPUResource
 {
 public:
-	GeometryHeap(ComPtr<ID3D12Device> device) : GPUResource(device), GPUResource::UsageState(D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER) {}
+	GeometryHeap(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList2> commandList) : GPUResource(device), GPUResource::UsageState(D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER) {}
 
 	virtual void Create(const std::wstring& name, size_t initialBufferSize) override;
 
-	void AddMesh(std::vector<Vertex>& vertices);
+	void AddMesh(std::vector<Vertex>& vertices, ID3D12GraphicsCommandList2* CommandList);
 
 
 private:
 	std::vector<Mesh> MeshData;
+	std::vector<D3D12_VERTEX_BUFFER_VIEW> VBVs;
 };
 
