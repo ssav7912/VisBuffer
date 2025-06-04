@@ -9,7 +9,7 @@ using namespace Microsoft::WRL;
 class UploadBuffer : public GPUResource
 {
 public:
-	UploadBuffer(ComPtr<ID3D12Device> device) : GPUResource(device), GPUResource::UsageState(D3D12_RESOURCE_STATE_GENERIC_READ) {};
+	UploadBuffer(ComPtr<ID3D12Device4> device) : GPUResource(device) { UsageState = D3D12_RESOURCE_STATE_GENERIC_READ; };
 
 	virtual void Create(const std::wstring& name, size_t BufferSize) override;
 	

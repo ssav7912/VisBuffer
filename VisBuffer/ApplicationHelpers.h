@@ -22,11 +22,12 @@ namespace ApplicationHelpers
 {
 	using Microsoft::WRL::ComPtr;
 
-	void ThrowIfFailed(HRESULT result)
+	inline void ThrowIfFailed(HRESULT result)
 	{
 		if (FAILED(result))
 		{
 			throw HrException(result);
 		}
 	}
+
 }

@@ -2,6 +2,7 @@
 #include "DXApplication.h"
 #include "stdafx.h"
 
+HWND Win32Application::hwnd = nullptr;
 
 int Win32Application::Run(DXApplication* inApplication, HINSTANCE hInstance, int nCmdShow)
 {

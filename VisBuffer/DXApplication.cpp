@@ -15,6 +15,10 @@ DXApplication::~DXApplication()
 {
 }
 
+std::wstring DXApplication::GetAssetFullPath(LPCWSTR assetName)
+{
+	return assetPath + assetName;
+}
 _Use_decl_annotations_
 void DXApplication::GetHardwareAdapter(IDXGIFactory1* Factory, IDXGIAdapter1** Adapter, bool requestHighPerformanceAdapter)
 {

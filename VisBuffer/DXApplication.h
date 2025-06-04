@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <string>
-#include "stdafx.h"; 
+#include "stdafx.h"
 
 class DXApplication
 {
@@ -24,7 +24,7 @@ public:
 	uint32_t GetHeight() const { return m_height; };
 	const WCHAR* GetTitle() const { return m_title.c_str(); };
 
-
+	std::wstring GetAssetFullPath(LPCWSTR assetName);
 
 protected:
 	void GetHardwareAdapter(_In_ IDXGIFactory1* Factory, _Outptr_result_maybenull_ IDXGIAdapter1** Adapter, bool requestHighPerformanceAdapter = false); 

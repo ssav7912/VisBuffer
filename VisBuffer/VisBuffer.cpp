@@ -6,10 +6,10 @@ using namespace ApplicationHelpers;
 
 VisBuffer::VisBuffer(uint32_t width, uint32_t height, std::wstring name) : DXApplication(width, height, name), 
 	viewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)),
-	scissorRect(0,0, static_cast<LONG>(width), static_cast<LONG>(height))
+	scissorRect(0,0, static_cast<LONG>(width), static_cast<LONG>(height)), Geometry(device)
 	
 {
-
+	
 
 }
 
@@ -62,7 +62,7 @@ void VisBuffer::LoadPipeline()
 	ComPtr<IDXGIAdapter1> hardwareAdapter;
 	GetHardwareAdapter(factory.Get(), hardwareAdapter.GetAddressOf());
 
-	ThrowIfFailed(D3D12CreateDevice(hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&device)));
+	ThrowIfFailed(D3D12CreateDevice(hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&device)));
 
 	D3D12_COMMAND_QUEUE_DESC queueDesc{};
 	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
@@ -110,6 +110,8 @@ void VisBuffer::LoadPipeline()
 	}
 
 	ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator))); 
+	//geometry heap init
+	Geometry.Create(L"Geometry Heap", 4096); //allocate 4K
 }
 
 void VisBuffer::LoadAssets()
@@ -164,14 +166,42 @@ void VisBuffer::LoadAssets()
 	}
 
 	ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator.Get(), pipelineState.Get(), IID_PPV_ARGS(&commandList)));
-
-	ThrowIfFailed(commandList->Close());
-
+	
 	{
-		//TODO: triangle data. 
+		std::vector<Vertex> vertices{
+			{ { 0.0f, 0.25f * aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+			{ { 0.25f, -0.25f * aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+			{ { -0.25f, -0.25f * aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
+		};
+		
+		Geometry.AddMesh(vertices, commandList.Get());
+
+		ThrowIfFailed(commandList->Close());
+
+		ID3D12CommandList* copyList[] = { commandList.Get() };
+
+		commandQueue->ExecuteCommandLists(1, copyList);
+ 
 	}
 
 
+	//crete synchronisation objects
+	{
+		ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
+
+		fenceValues[frameIndex] = 1;
+
+		fenceEvent = CreateEvent(nullptr, false, false, nullptr);
+		if (fenceEvent == nullptr)
+		{
+			ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
+		}
+
+
+
+	}
+
+	WaitForGpu(); //wait for the copy to complete before moving to rendering...
 }
 
 void VisBuffer::PopulateCommandList()
@@ -186,7 +216,8 @@ void VisBuffer::PopulateCommandList()
 	commandList->RSSetScissorRects(1, &scissorRect); 
 
 	//back buffer will be a render target 
-	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTargets[frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET)); 
+	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(renderTargets[frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	commandList->ResourceBarrier(1, &barrier); 
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart(), frameIndex, rtvDescriptorSize); 
 	commandList->OMSetRenderTargets(1, &rtvHandle, false, nullptr); 
@@ -195,10 +226,11 @@ void VisBuffer::PopulateCommandList()
 	const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f }; 
 	commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
+	commandList->IASetVertexBuffers(0, 1, &Geometry.GetVertexBuffers()[0]);
 	commandList->DrawInstanced(3, 1, 0, 0); 
 
-	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTargets[frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT)); 
+	auto backBarrier = CD3DX12_RESOURCE_BARRIER::Transition(renderTargets[frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	commandList->ResourceBarrier(1, &backBarrier); 
 
 	ThrowIfFailed(commandList->Close()); 
 }

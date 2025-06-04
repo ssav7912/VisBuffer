@@ -7,7 +7,7 @@ using namespace Microsoft::WRL;
 class GPUResource
 {
 public:
-	GPUResource(ComPtr<ID3D12Device> device) : Device(device) {};
+	GPUResource(ComPtr<ID3D12Device4> device) : Device(device) {};
 
 	virtual void Create(const std::wstring& name, size_t BufferSize) = 0;
 
@@ -21,7 +21,7 @@ public:
 protected:
 	size_t BufferSize = 0;
 
-	ComPtr<ID3D12Device> Device;
+	ComPtr<ID3D12Device4> Device;
 	ComPtr<ID3D12Resource> Resource;
 	D3D12_RESOURCE_STATES UsageState = D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON;
 	D3D12_RESOURCE_STATES TransitioningState = (D3D12_RESOURCE_STATES)-1;

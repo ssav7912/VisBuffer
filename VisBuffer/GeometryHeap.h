@@ -1,12 +1,11 @@
 #pragma once
 #include <vector>
-#include "stdafx.h"
-#include "directxmath.h"
+#include <directxmath.h>
 #include "GPUResource.h"
 
 struct Vertex {
-	XMFLOAT3 Position;
-	XMFLOAT4 Color; 
+	DirectX::XMFLOAT3 Position;
+	DirectX::XMFLOAT4 Color; 
 };
 
 struct MeshConstantBuffer
@@ -26,7 +25,7 @@ struct Mesh
 class GeometryHeap : public GPUResource
 {
 public:
-	GeometryHeap(ComPtr<ID3D12Device> device, ComPtr<ID3D12GraphicsCommandList2> commandList) : GPUResource(device), GPUResource::UsageState(D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER) {}
+	GeometryHeap(ComPtr<ID3D12Device4> device) : GPUResource(device) { UsageState = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; }
 
 	virtual void Create(const std::wstring& name, size_t initialBufferSize) override;
 

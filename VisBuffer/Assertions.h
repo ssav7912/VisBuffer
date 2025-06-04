@@ -11,17 +11,15 @@
         if (!(bool)(isFalse)) { \
             std::print("\nAssertion failed in " STRINGIFY_BUILTIN(__FILE__) " @ " STRINGIFY_BUILTIN(__LINE__) "\n"); \
             std::print("\'" #isFalse "\' is false"); \
-            std::print(__VA_ARGS__); \
-            std::print("\n"); \
+            std::println(STRINGIFY_BUILTIN(__VA_ARGS__)); \
             __debugbreak(); \
         }
 
 #define ASSERT_SUCCEEDED( hr, ... ) \
         if (FAILED(hr)) { \
             std::print("\nHRESULT failed in " STRINGIFY_BUILTIN(__FILE__) " @ " STRINGIFY_BUILTIN(__LINE__) "\n"); \
-            std::print(std::format("hr = {08X}", hr)); \
-            std::print((__VA_ARGS__)); \
-            std::print("\n"); \
+            std::print(std::format("hr = {:08X}", hr)); \
+            std::println(STRINGIFY_BUILTIN(__VA_ARGS__)); \
             __debugbreak(); \
         }
 
@@ -33,8 +31,7 @@
             s_TriggeredWarning = true; \
             std::print("\nWarning issued in " STRINGIFY_BUILTIN(__FILE__) " @ " STRINGIFY_BUILTIN(__LINE__) "\n"); \
             std::print("\'" #isTrue "\' is true"); \
-            std::print((__VA_ARGS__)); \
-            std::print("\n"); \
+            std::println((__VA_ARGS__)); \
         } \
     }
 
