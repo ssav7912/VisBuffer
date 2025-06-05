@@ -2,6 +2,7 @@
 #include "DXApplication.h"
 #include <cstdint>
 #include "GeometryHeap.h"
+#include <memory>
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -33,7 +34,7 @@ private:
     ComPtr<ID3D12Device4> device;
     ComPtr<ID3D12Resource> resource;
     ComPtr<ID3D12Resource> renderTargets[FrameCount]; 
-    ComPtr<ID3D12CommandAllocator> commandAllocator;
+    ComPtr<ID3D12CommandAllocator> commandAllocators[FrameCount];
     ComPtr<ID3D12CommandQueue> commandQueue;
     ComPtr<ID3D12RootSignature> RootSignature;
     ComPtr<ID3D12DescriptorHeap> rtvHeap; 
@@ -45,7 +46,7 @@ private:
     ComPtr<ID3D12Resource> vertexBuffer;
     D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
 
-    GeometryHeap Geometry;
+    std::unique_ptr<GeometryHeap> Geometry = nullptr;
 
     //sync objects
     ::uint32_t frameIndex = 0;

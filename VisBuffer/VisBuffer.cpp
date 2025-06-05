@@ -6,7 +6,7 @@ using namespace ApplicationHelpers;
 
 VisBuffer::VisBuffer(uint32_t width, uint32_t height, std::wstring name) : DXApplication(width, height, name), 
 	viewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)),
-	scissorRect(0,0, static_cast<LONG>(width), static_cast<LONG>(height)), Geometry(device)
+	scissorRect(0,0, static_cast<LONG>(width), static_cast<LONG>(height))
 	
 {
 	
@@ -64,6 +64,8 @@ void VisBuffer::LoadPipeline()
 
 	ThrowIfFailed(D3D12CreateDevice(hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&device)));
 
+	Geometry = std::make_unique<GeometryHeap>(device);
+
 	D3D12_COMMAND_QUEUE_DESC queueDesc{};
 	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
@@ -84,7 +86,7 @@ void VisBuffer::LoadPipeline()
 
 	ThrowIfFailed(factory->MakeWindowAssociation(Win32Application::GetHwnd(), DXGI_MWA_NO_ALT_ENTER)); 
 
-	ThrowIfFailed(swapChain.As(&localSwapChain));
+	ThrowIfFailed(localSwapChain.As(&swapChain));
 	frameIndex = swapChain->GetCurrentBackBufferIndex();
 
 	//descriptor heaps
@@ -106,12 +108,12 @@ void VisBuffer::LoadPipeline()
 			ThrowIfFailed(swapChain->GetBuffer(n, IID_PPV_ARGS(&renderTargets[n]))); 
 			device->CreateRenderTargetView(renderTargets[n].Get(), nullptr, rtvHandle); 
 			rtvHandle.Offset(1, rtvDescriptorSize); 
+			ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocators[n])));
 		}
 	}
 
-	ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator))); 
 	//geometry heap init
-	Geometry.Create(L"Geometry Heap", 4096); //allocate 4K
+	Geometry->Create(L"Geometry Heap", 4096); //allocate 4K
 }
 
 void VisBuffer::LoadAssets()
@@ -139,7 +141,7 @@ void VisBuffer::LoadAssets()
 #endif
 
 		ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr));
-		ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &vertexShader, nullptr));
+		ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
 
 		D3D12_INPUT_ELEMENT_DESC inputElementDescs[] = {
 			{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
@@ -165,7 +167,7 @@ void VisBuffer::LoadAssets()
 
 	}
 
-	ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator.Get(), pipelineState.Get(), IID_PPV_ARGS(&commandList)));
+	ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocators[frameIndex].Get(), pipelineState.Get(), IID_PPV_ARGS(&commandList)));
 	
 	{
 		std::vector<Vertex> vertices{
@@ -173,23 +175,37 @@ void VisBuffer::LoadAssets()
 			{ { 0.25f, -0.25f * aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
 			{ { -0.25f, -0.25f * aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
 		};
+
+		std::vector<Vertex> vertices2{
+			{ { 0.0f, 0.75f * aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+			{ { 0.75f, -0.75f * aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+			{ { -0.75f, -0.75f * aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } }
+		};
 		
-		Geometry.AddMesh(vertices, commandList.Get());
+		std::vector<Vertex> vertices3{
+			{ { 0.0f, 0.25f * aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+			{ { 1.0f, -1.0f * aspectRatio, 0.0f }, { 1.0f, 0.0, 0.0f, 1.0f } },
+			{ { -1.0f, -1.0f * aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } }
+		};
+
+		Geometry->AddMesh(vertices, commandList.Get());
+		Geometry->AddMesh(vertices2, commandList.Get());
+		Geometry->AddMesh(vertices3, commandList.Get());
+
 
 		ThrowIfFailed(commandList->Close());
 
 		ID3D12CommandList* copyList[] = { commandList.Get() };
 
 		commandQueue->ExecuteCommandLists(1, copyList);
- 
 	}
 
 
 	//crete synchronisation objects
 	{
-		ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
+		ThrowIfFailed(device->CreateFence(fenceValues[frameIndex], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
 
-		fenceValues[frameIndex] = 1;
+		fenceValues[frameIndex]++;
 
 		fenceEvent = CreateEvent(nullptr, false, false, nullptr);
 		if (fenceEvent == nullptr)
@@ -202,14 +218,15 @@ void VisBuffer::LoadAssets()
 	}
 
 	WaitForGpu(); //wait for the copy to complete before moving to rendering...
+	Geometry->Close(); //clear upload heaps. 
 }
 
 void VisBuffer::PopulateCommandList()
 {
 	//TODO: fence guard, delegate?? 
-	ThrowIfFailed(commandAllocator->Reset());
+	ThrowIfFailed(commandAllocators[frameIndex]->Reset());
 	
-	ThrowIfFailed(commandList->Reset(commandAllocator.Get(), pipelineState.Get()));
+	ThrowIfFailed(commandList->Reset(commandAllocators[frameIndex].Get(), pipelineState.Get()));
 
 	commandList->SetGraphicsRootSignature(RootSignature.Get());
 	commandList->RSSetViewports(1, &viewport);
@@ -226,9 +243,14 @@ void VisBuffer::PopulateCommandList()
 	const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f }; 
 	commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	commandList->IASetVertexBuffers(0, 1, &Geometry.GetVertexBuffers()[0]);
-	commandList->DrawInstanced(3, 1, 0, 0); 
 
+
+	for (const auto& VBV : Geometry->GetVertexBuffers())
+	{
+		commandList->IASetVertexBuffers(0, 1, &VBV);
+		commandList->DrawInstanced(3, 1, 0, 0);
+	}
+	
 	auto backBarrier = CD3DX12_RESOURCE_BARRIER::Transition(renderTargets[frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	commandList->ResourceBarrier(1, &backBarrier); 
 

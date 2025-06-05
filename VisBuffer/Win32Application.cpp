@@ -52,7 +52,7 @@ int Win32Application::Run(DXApplication* inApplication, HINSTANCE hInstance, int
 
 LRESULT Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    auto app = reinterpret_cast<DXApplication*>(hWnd, GWLP_USERDATA);
+    auto app = reinterpret_cast<DXApplication*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
     switch (message)
     {

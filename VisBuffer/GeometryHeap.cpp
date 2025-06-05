@@ -45,7 +45,7 @@ void GeometryHeap::Create(const std::wstring& name, size_t initialBufferSize)
 
 void GeometryHeap::AddMesh(std::vector<Vertex>& vertices, ID3D12GraphicsCommandList2* CommandList)
 {
-	UploadBuffer upload(Device);
+	auto& upload = UploadBuffers.emplace_back<UploadBuffer>(Device);
 	const size_t VerticesSize = vertices.size() * sizeof(Vertex);
 
 	upload.Create(L"Mesh upload Resource", VerticesSize);
@@ -81,6 +81,7 @@ void GeometryHeap::AddMesh(std::vector<Vertex>& vertices, ID3D12GraphicsCommandL
 	CommandList->CopyBufferRegion(Resource.Get(), destinationOffset, upload.GetResource(), 0, VerticesSize); 
 	
 	CD3DX12_RESOURCE_BARRIER Barrier = CD3DX12_RESOURCE_BARRIER::Transition(Resource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+	UsageState = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 	CommandList->ResourceBarrier(1, &Barrier);
 
 	D3D12_VERTEX_BUFFER_VIEW VBV = { 0 };
@@ -88,4 +89,9 @@ void GeometryHeap::AddMesh(std::vector<Vertex>& vertices, ID3D12GraphicsCommandL
 	VBV.SizeInBytes = VerticesSize;
 	VBV.StrideInBytes = sizeof(Vertex); 
 	VBVs.push_back(VBV); 
+}
+
+void GeometryHeap::Close()
+{
+	UploadBuffers.clear(); 
 }
