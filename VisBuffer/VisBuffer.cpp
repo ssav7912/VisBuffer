@@ -21,7 +21,8 @@ void VisBuffer::OnInit()
 
 void VisBuffer::OnUpdate()
 {
-
+	GlobalConstants.CameraPosition = DirectX::XMFLOAT3();
+	GlobalConstants.ViewProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(60, 1.0, 0.01, 1000); 
 }
 
 void VisBuffer::OnRender()
@@ -64,7 +65,11 @@ void VisBuffer::LoadPipeline()
 
 	ThrowIfFailed(D3D12CreateDevice(hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&device)));
 
-	Geometry = std::make_unique<GeometryHeap>(device);
+	//create resource objects, initialisation is done later.
+	constexpr size_t MaxMeshes = 16;
+	ShaderDescriptors = std::make_shared<DescriptorHeap>(device); 
+	ShaderDescriptors->Create(L"Shader Descriptor Heap", D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, MaxMeshes);
+	Geometry = std::make_unique<GeometryHeap>(device, ShaderDescriptors);
 
 	D3D12_COMMAND_QUEUE_DESC queueDesc{};
 	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
@@ -109,24 +114,37 @@ void VisBuffer::LoadPipeline()
 			device->CreateRenderTargetView(renderTargets[n].Get(), nullptr, rtvHandle); 
 			rtvHandle.Offset(1, rtvDescriptorSize); 
 			ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocators[n])));
+
+			GlobalConstantResource[n] = std::make_unique<UploadBuffer>(device);
+			GlobalConstantResource[n]->Create(std::format(L"Constant Buffer for frame {0}", n), sizeof(GlobalConstantBuffer));
+			
 		}
+	
+		
 	}
 
 	//geometry heap init
-	Geometry->Create(L"Geometry Heap", 4096); //allocate 4K
+	Geometry->Create(L"Geometry Heap", MaxMeshes); 
 }
 
 void VisBuffer::LoadAssets()
 {
 
+	//TODO: Move into a root signature class
 	{
-		CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-		rootSignatureDesc.Init(0, nullptr, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+		constexpr size_t NUMROOTCONSTANTS = 2;
+		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
+
+		CD3DX12_ROOT_PARAMETER1 RootConstants[NUMROOTCONSTANTS] = {};
+		RootConstants[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE);
+		RootConstants[1].InitAsConstantBufferView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE); 
+
+		rootSignatureDesc.Init_1_1(NUMROOTCONSTANTS, RootConstants, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 		ComPtr<ID3DBlob> signature;
 		ComPtr<ID3DBlob> error;
 
-		ThrowIfFailed(D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error));
+		ThrowIfFailed(D3D12SerializeVersionedRootSignature(&rootSignatureDesc, &signature, &error));
 		ThrowIfFailed(device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&RootSignature)));
 	}
 
@@ -170,27 +188,35 @@ void VisBuffer::LoadAssets()
 	ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocators[frameIndex].Get(), pipelineState.Get(), IID_PPV_ARGS(&commandList)));
 	
 	{
+		MeshConstantBuffer Mesh1 = {};
+		Mesh1.LocalToWorld = DirectX::XMMatrixIdentity();
 		std::vector<Vertex> vertices{
-			{ { 0.0f, 0.25f * aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
-			{ { 0.25f, -0.25f * aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-			{ { -0.25f, -0.25f * aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
+			{ { 0.0f, 0.25f, 1.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+			{ { 0.25f, -0.25f, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+			{ { -0.25f, -0.25f , 1.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
 		};
 
+		MeshConstantBuffer Mesh2 = {};
+		Mesh2.LocalToWorld = DirectX::XMMatrixIdentity();
 		std::vector<Vertex> vertices2{
-			{ { 0.0f, 0.75f * aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-			{ { 0.75f, -0.75f * aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-			{ { -0.75f, -0.75f * aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } }
+			{ { 0.0f, 0.75f * aspectRatio, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+			{ { 0.75f, -0.75f * aspectRatio, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+			{ { -0.75f, -0.75f * aspectRatio, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } }
 		};
 		
+		MeshConstantBuffer Mesh3 = {}; 
+		Mesh3.LocalToWorld = DirectX::XMMatrixIdentity(); 
 		std::vector<Vertex> vertices3{
 			{ { 0.0f, 0.25f * aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
 			{ { 1.0f, -1.0f * aspectRatio, 0.0f }, { 1.0f, 0.0, 0.0f, 1.0f } },
 			{ { -1.0f, -1.0f * aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } }
 		};
 
-		Geometry->AddMesh(vertices, commandList.Get());
-		Geometry->AddMesh(vertices2, commandList.Get());
-		Geometry->AddMesh(vertices3, commandList.Get());
+
+
+		Geometry->BeginAddMesh(vertices, Mesh1, commandList.Get());
+		Geometry->BeginAddMesh(vertices, Mesh2, commandList.Get());
+		Geometry->BeginAddMesh(vertices, Mesh3, commandList.Get());
 
 
 		ThrowIfFailed(commandList->Close());
@@ -218,7 +244,7 @@ void VisBuffer::LoadAssets()
 	}
 
 	WaitForGpu(); //wait for the copy to complete before moving to rendering...
-	Geometry->Close(); //clear upload heaps. 
+	Geometry->EndAddMesh(); //clear upload heaps. 
 }
 
 void VisBuffer::PopulateCommandList()
@@ -227,7 +253,6 @@ void VisBuffer::PopulateCommandList()
 	ThrowIfFailed(commandAllocators[frameIndex]->Reset());
 	
 	ThrowIfFailed(commandList->Reset(commandAllocators[frameIndex].Get(), pipelineState.Get()));
-
 	commandList->SetGraphicsRootSignature(RootSignature.Get());
 	commandList->RSSetViewports(1, &viewport);
 	commandList->RSSetScissorRects(1, &scissorRect); 
@@ -244,9 +269,21 @@ void VisBuffer::PopulateCommandList()
 	commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+	GlobalConstantBuffer* GlobalConstantAddr = static_cast<GlobalConstantBuffer*>(GlobalConstantResource[frameIndex]->Map());
+	std::memcpy(GlobalConstantAddr, &GlobalConstants, sizeof(GlobalConstantBuffer));
+	GlobalConstantResource[frameIndex]->Unmap(); 
 
-	for (const auto& VBV : Geometry->GetVertexBuffers())
+
+	commandList->SetGraphicsRootConstantBufferView(0, GlobalConstantResource[frameIndex]->GetGpuVirtualAddress());
+
+	ASSERT(Geometry->GetMeshData().size() == Geometry->GetVertexBuffers().size(), "Num elements in Constant buffer and vertex buffer do not match!");
+	for (size_t i = 0; i < Geometry->GetMeshData().size(); i++)
 	{
+		const auto& VBV = Geometry->GetVertexBuffers()[i];
+		const D3D12_GPU_VIRTUAL_ADDRESS CBVOffset = Geometry->GetMeshData()[i].ConstantBufferOffset;
+		const D3D12_GPU_VIRTUAL_ADDRESS CBAddress = Geometry->GetMeshConstants().GetGpuVirtualAddress() + CBVOffset;
+
+		commandList->SetGraphicsRootConstantBufferView(1, CBAddress);
 		commandList->IASetVertexBuffers(0, 1, &VBV);
 		commandList->DrawInstanced(3, 1, 0, 0);
 	}

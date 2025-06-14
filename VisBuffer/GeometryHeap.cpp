@@ -5,93 +5,49 @@
 
 
 using namespace ApplicationHelpers;
-void GeometryHeap::Create(const std::wstring& name, size_t initialBufferSize)
+
+void GeometryHeap::Create(const std::wstring& name, size_t InitialNumElements)
 {
-	Destroy();
+	const size_t VertexHeapSize = InitialNumElements * DEFAULT_VERTEX_BUFFER_SLACK; 
 
-	BufferSize = initialBufferSize;
+	DefaultVertexHeap.Create(L"Default Vertex Heap", VertexHeapSize);
 
-	D3D12_HEAP_PROPERTIES HeapProps;
-	HeapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-	HeapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	HeapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-	HeapProps.CreationNodeMask = 1;
-	HeapProps.VisibleNodeMask = 1;
-
-	D3D12_RESOURCE_DESC Desc = {};
-	Desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	Desc.Width = BufferSize;
-	Desc.Height = 1;
-	Desc.DepthOrArraySize = 1;
-	Desc.MipLevels = 1;
-	Desc.Format = DXGI_FORMAT_UNKNOWN;
-	Desc.SampleDesc.Count = 1;
-	Desc.SampleDesc.Quality = 0;
-	Desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-	Desc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-
-	ThrowIfFailed(Device->CreateCommittedResource(&HeapProps, D3D12_HEAP_FLAG_NONE, &Desc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&Resource)));
-
-	
-	GPUAddress = Resource->GetGPUVirtualAddress();
-
-#if defined (_DEBUG)
-	Resource->SetName(name.c_str());
-#else
-	(name);
-#endif
+	const size_t ConstantBufferSize = InitialNumElements * sizeof(MeshConstantBuffer); 
+	ConstantBufferHeap.Create(L"Default Constant Buffer Heap", ConstantBufferSize); 
 }
 
-void GeometryHeap::AddMesh(std::vector<Vertex>& vertices, ID3D12GraphicsCommandList2* CommandList)
+void GeometryHeap::BeginAddMesh(const std::vector<Vertex>& vertices, const MeshConstantBuffer& PrimitiveData, ID3D12GraphicsCommandList2* CommandList)
 {
-	auto& upload = UploadBuffers.emplace_back<UploadBuffer>(Device);
-	const size_t VerticesSize = vertices.size() * sizeof(Vertex);
+	const auto& newVBV = DefaultVertexHeap.AddMesh(vertices, CommandList); 
+	const size_t NumMeshes = MeshData.size();
 
-	upload.Create(L"Mesh upload Resource", VerticesSize);
-
-	void* buffer = upload.Map();
-	std::memcpy(buffer, vertices.data(), VerticesSize);
-	upload.Unmap();
-
-	D3D12_GPU_VIRTUAL_ADDRESS destinationOffset = 0;
-	if (MeshData.size() > 0)
-	{
-		const Mesh& lastMesh = MeshData.back();
-		destinationOffset = lastMesh.VertexBufferOffset + lastMesh.VertexBufferSize;
-	}
-
-	Mesh newMesh = { 0 };
-	newMesh.VertexBufferOffset = destinationOffset;
-	newMesh.VertexBufferSize = VerticesSize;
+	MeshConstantBuffer* CBMem = static_cast<MeshConstantBuffer*>(ConstantBufferHeap.Map()); 
+	std::memcpy(CBMem + (NumMeshes), &PrimitiveData, sizeof(MeshConstantBuffer));
+	ConstantBufferHeap.Unmap(); 
 	
+	Mesh newMesh = {};
+	newMesh.VertexBufferOffset = newVBV.BufferLocation - DefaultVertexHeap.GetGpuVirtualAddress();
+	newMesh.VertexBufferSize = newVBV.SizeInBytes;
+	newMesh.ConstantBufferOffset = (NumMeshes * sizeof(MeshConstantBuffer));
+
+	D3D12_CONSTANT_BUFFER_VIEW_DESC CBView{};
+	CBView.BufferLocation = ConstantBufferHeap.GetGpuVirtualAddress() + newMesh.ConstantBufferOffset;
+	CBView.SizeInBytes = sizeof(MeshConstantBuffer); 
+
+	CBVDescriptors.emplace_back(DescriptorHeap->Alloc(1));
+	Device->CreateConstantBufferView(&CBView, CBVDescriptors.back());
+
 	MeshData.push_back(newMesh);
-
-	//TODO: expand the heap if mesh is too large. 
-	ASSERT((destinationOffset + VerticesSize) < BufferSize, "Size of new mesh overflows buffer.");
-	
-	//geometryheap invariant is that resource is only ever used for copy dest or as a vertex buffer
-	ASSERT(UsageState == D3D12_RESOURCE_STATE_COPY_DEST || UsageState == D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, "Usage state of buffer is incorrect.");
-
-	if (UsageState != D3D12_RESOURCE_STATE_COPY_DEST)
-	{
-		CD3DX12_RESOURCE_BARRIER Barrier = CD3DX12_RESOURCE_BARRIER::Transition(Resource.Get(), D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATE_COPY_DEST);
-		CommandList->ResourceBarrier(1, &Barrier);
-	}
-	CommandList->CopyBufferRegion(Resource.Get(), destinationOffset, upload.GetResource(), 0, VerticesSize); 
-	
-	CD3DX12_RESOURCE_BARRIER Barrier = CD3DX12_RESOURCE_BARRIER::Transition(Resource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
-	UsageState = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-	CommandList->ResourceBarrier(1, &Barrier);
-
-	D3D12_VERTEX_BUFFER_VIEW VBV = { 0 };
-	VBV.BufferLocation = GetGpuVirtualAddress() + newMesh.VertexBufferOffset;
-	VBV.SizeInBytes = VerticesSize;
-	VBV.StrideInBytes = sizeof(Vertex); 
-	VBVs.push_back(VBV); 
 }
 
-void GeometryHeap::Close()
+void GeometryHeap::UpdateMeshConstants(size_t MeshIndex, const MeshConstantBuffer& PrimitiveData)
 {
-	UploadBuffers.clear(); 
+	ASSERT(MeshIndex < MeshData.size() - 1, "MeshIndex must be smaller than the number of meshes in the heap");
+
+	const auto CBOffset = MeshData[MeshIndex].ConstantBufferOffset; 
+	const D3D12_GPU_VIRTUAL_ADDRESS CBBasePtr = ConstantBufferHeap.GetGpuVirtualAddress();
+
+	MeshConstantBuffer* CBMem = static_cast<MeshConstantBuffer*>(ConstantBufferHeap.Map());
+	std::memcpy(CBMem + CBOffset, &PrimitiveData, sizeof(MeshConstantBuffer)); 
+	ConstantBufferHeap.Unmap();
 }

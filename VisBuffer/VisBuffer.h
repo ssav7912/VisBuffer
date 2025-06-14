@@ -42,10 +42,12 @@ private:
     ComPtr<ID3D12GraphicsCommandList2> commandList;
     ::uint32_t rtvDescriptorSize = 0;
 
-    //app resources - should be abstracted? 
-    ComPtr<ID3D12Resource> vertexBuffer;
-    D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
+    //Global cbv, maybe move into a generic linearallocator heap later
+    std::unique_ptr<UploadBuffer> GlobalConstantResource[FrameCount]; 
+    GlobalConstantBuffer GlobalConstants;
 
+
+    std::shared_ptr<DescriptorHeap> ShaderDescriptors = nullptr; 
     std::unique_ptr<GeometryHeap> Geometry = nullptr;
 
     //sync objects

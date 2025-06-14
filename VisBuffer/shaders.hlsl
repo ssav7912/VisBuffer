@@ -5,11 +5,27 @@ struct PSInput
     float4 color : COLOR; 
 };
 
+
+cbuffer GlobalConstants : register(b0)
+{
+    float4x4 ViewProjectionMatrix;
+    float3 CameraPos;
+};
+
+cbuffer MeshConstants : register(b1)
+{
+    float4x4 LocalToWorld; 
+}
+
 PSInput VSMain(float4 position: POSITION, float4 color : COLOR)
 {
     PSInput result;
     
-    result.position = position;
+    position = float4(position.xyz, 1.0); 
+    
+    float3 worldPos = mul(LocalToWorld, position).xyz;
+    
+    result.position = mul(ViewProjectionMatrix, float4(worldPos, 1.0));
     result.color = color;
     
     return result;

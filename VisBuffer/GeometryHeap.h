@@ -3,16 +3,10 @@
 #include <directxmath.h>
 #include "GPUResource.h"
 #include "UploadBuffer.h"
-
-struct Vertex {
-	DirectX::XMFLOAT3 Position;
-	DirectX::XMFLOAT4 Color; 
-};
-
-struct MeshConstantBuffer
-{
-
-};
+#include "ConstantBuffers.h"
+#include "DescriptorHeap.h"
+#include "Assertions.h"
+#include "VertexHeap.h"
 
 
 struct Mesh
@@ -21,25 +15,48 @@ struct Mesh
 	D3D12_GPU_VIRTUAL_ADDRESS VertexBufferSize;
 	D3D12_GPU_VIRTUAL_ADDRESS IndexBufferOffset;
 	D3D12_GPU_VIRTUAL_ADDRESS IndexBufferSize;
+
+	D3D12_GPU_VIRTUAL_ADDRESS ConstantBufferOffset;
 };
 
-class GeometryHeap : public GPUResource
+class GeometryHeap
 {
-public:
-	GeometryHeap(ComPtr<ID3D12Device4> device) : GPUResource(device) { UsageState = D3D12_RESOURCE_STATE_COPY_DEST; }
+public: 
+	GeometryHeap(ComPtr<ID3D12Device4> device, std::shared_ptr<DescriptorHeap> descriptorHeap) : ConstantBufferHeap(device), DefaultVertexHeap(device), Device(device),
+	DescriptorHeap(descriptorHeap) {
+		ASSERT(descriptorHeap != nullptr, "DescriptorHeap can not be null"); 
+		ASSERT(descriptorHeap->GetHeapDescription().Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, "Input DescriptorHeap must be for CBVs");
+		ASSERT(descriptorHeap->HasSpace(1), "No space left on the heap for additional allocations");
 
-	virtual void Create(const std::wstring& name, size_t initialBufferSize) override;
+	};
 
-	void AddMesh(std::vector<Vertex>& vertices, ID3D12GraphicsCommandList2* CommandList);
+	void Create(const std::wstring& name, size_t InitialNumElements);
 
-	const std::vector<D3D12_VERTEX_BUFFER_VIEW>& GetVertexBuffers() const { return VBVs; };
+	void BeginAddMesh(const std::vector<Vertex>& vertices, const MeshConstantBuffer& PrimitiveData, ID3D12GraphicsCommandList2* CommandList);
+	
+	//TODO: Double buffer this... 
+	void UpdateMeshConstants(size_t MeshIndex, const MeshConstantBuffer& PrimitiveData);
 
-	//call to release resources once command list is closed
-	void Close(); 
+	const std::vector<Mesh>& GetMeshData() const { return MeshData; };
+	const std::vector<D3D12_VERTEX_BUFFER_VIEW>& GetVertexBuffers() const { return DefaultVertexHeap.GetVertexBuffers(); };
+
+	const UploadBuffer& GetMeshConstants() { return ConstantBufferHeap; };
+
+	//call to release temporary upload resources once command list is closed
+	void EndAddMesh() { DefaultVertexHeap.Close(); };
+
+
+	//default amount of space allocated per-object for Create(). 
+	static constexpr size_t DEFAULT_VERTEX_BUFFER_SLACK = 256 * sizeof(Vertex);
 
 private:
-	std::vector<UploadBuffer> UploadBuffers{};
+	std::vector<DescriptorHandle> CBVDescriptors;
+	std::shared_ptr<DescriptorHeap> DescriptorHeap;
+	ComPtr<ID3D12Device4> Device;
 	std::vector<Mesh> MeshData;
-	std::vector<D3D12_VERTEX_BUFFER_VIEW> VBVs;
+	UploadBuffer ConstantBufferHeap;
+	VertexHeap DefaultVertexHeap;
+
 };
+
 

@@ -134,11 +134,15 @@ d3dcompiler.lib</AdditionalDependencies>
   <ItemGroup>
     <ClInclude Include="ApplicationHelpers.h" />
     <ClInclude Include="Assertions.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="ConstantBuffers.h" />
+    <ClInclude Include="DescriptorHeap.h" />
     <ClInclude Include="DXApplication.h" />
     <ClInclude Include="GeometryHeap.h" />
     <ClInclude Include="GPUResource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="UploadBuffer.h" />
+    <ClInclude Include="VertexHeap.h" />
     <ClInclude Include="VisBuffer.h" />
     <ClInclude Include="Win32Application.h" />
   </ItemGroup>
@@ -146,11 +150,14 @@ d3dcompiler.lib</AdditionalDependencies>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="DescriptorHeap.cpp" />
     <ClCompile Include="DXApplication.cpp" />
     <ClCompile Include="GeometryHeap.cpp" />
     <ClCompile Include="GPUResource.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="UploadBuffer.cpp" />
+    <ClCompile Include="VertexHeap.cpp" />
     <ClCompile Include="VisBuffer.cpp" />
     <ClCompile Include="Win32Application.cpp" />
   </ItemGroup>
