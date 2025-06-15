@@ -10,11 +10,11 @@ struct Vertex {
 
 struct alignas(256) MeshConstantBuffer
 {
-	DirectX::XMMATRIX LocalToWorld;
+	DirectX::XMFLOAT4X4 LocalToWorld;
 };
 
 struct alignas(256) GlobalConstantBuffer
 {
-	DirectX::XMMATRIX ViewProjectionMatrix;
+	DirectX::XMFLOAT4X4 ViewProjectionMatrix;
 	DirectX::XMFLOAT3 CameraPosition; 
 };

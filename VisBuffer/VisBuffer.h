@@ -3,6 +3,7 @@
 #include <cstdint>
 #include "GeometryHeap.h"
 #include <memory>
+#include "Camera.h"
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -18,7 +19,7 @@ class VisBuffer : public DXApplication
 public: 
     VisBuffer(uint32_t width, uint32_t height, std::wstring name);
 
-
+    virtual void OnKeyDown(uint8_t key) override;
 
     virtual void OnInit() override;
     virtual void OnUpdate() override;
@@ -27,7 +28,11 @@ public:
 
 private:
     static constexpr ::uint32_t FrameCount = 2;
+    //controller resources
+    CameraController Camera{};
 
+
+    //graphics resources
     CD3DX12_VIEWPORT viewport;
     CD3DX12_RECT scissorRect;
     ComPtr<IDXGISwapChain3> swapChain;

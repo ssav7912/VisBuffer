@@ -15,6 +15,15 @@ DXApplication::~DXApplication()
 {
 }
 
+void DXApplication::OnKeyDown(uint8_t key)
+{
+
+}
+
+void DXApplication::OnKeyUp(uint8_t key)
+{
+}
+
 std::wstring DXApplication::GetAssetFullPath(LPCWSTR assetName)
 {
 	return assetPath + assetName;

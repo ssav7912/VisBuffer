@@ -17,8 +17,8 @@ public:
 	virtual void OnDestroy() = 0;
 
 
-	virtual void OnKeyDown(uint8_t key) {};
-	virtual void OnKeyUp(uint8_t key) {}; 
+	virtual void OnKeyDown(uint8_t key);
+	virtual void OnKeyUp(uint8_t key); 
 
 	uint32_t GetWidth() const { return m_width; };
 	uint32_t GetHeight() const { return m_height; };

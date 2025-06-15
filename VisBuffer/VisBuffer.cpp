@@ -13,6 +13,18 @@ VisBuffer::VisBuffer(uint32_t width, uint32_t height, std::wstring name) : DXApp
 
 }
 
+void VisBuffer::OnKeyDown(uint8_t key)
+{
+	switch (key)
+	{
+	case 'W': { Camera.ApplyPositionOffset(DirectX::SimpleMath::Vector3::Forward); break; };
+	case 'S': { Camera.ApplyPositionOffset(-DirectX::SimpleMath::Vector3::Forward); break; };
+	case 'A': { Camera.ApplyPositionOffset(DirectX::SimpleMath::Vector3::Left); break; };
+	case 'D': { Camera.ApplyPositionOffset(DirectX::SimpleMath::Vector3::Right); break; }
+	}
+
+}
+
 void VisBuffer::OnInit()
 {
 	LoadPipeline();
@@ -21,8 +33,11 @@ void VisBuffer::OnInit()
 
 void VisBuffer::OnUpdate()
 {
-	GlobalConstants.CameraPosition = DirectX::XMFLOAT3();
-	GlobalConstants.ViewProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(60, 1.0, 0.01, 1000); 
+	float _discard = 0.0f;
+	DirectX::SimpleMath::Vector3 Position;
+	Camera.GetHeadingPitchAndPosition(_discard, _discard, Position);
+	GlobalConstants.CameraPosition = Position;
+	GlobalConstants.ViewProjectionMatrix = Camera.GetCamera().GetWorldToProjectionMatrix(); 
 }
 
 void VisBuffer::OnRender()
@@ -189,7 +204,7 @@ void VisBuffer::LoadAssets()
 	
 	{
 		MeshConstantBuffer Mesh1 = {};
-		Mesh1.LocalToWorld = DirectX::XMMatrixIdentity();
+		DirectX::XMStoreFloat4x4(&Mesh1.LocalToWorld, DirectX::XMMatrixIdentity());
 		std::vector<Vertex> vertices{
 			{ { 0.0f, 0.25f, 1.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
 			{ { 0.25f, -0.25f, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
@@ -197,7 +212,7 @@ void VisBuffer::LoadAssets()
 		};
 
 		MeshConstantBuffer Mesh2 = {};
-		Mesh2.LocalToWorld = DirectX::XMMatrixIdentity();
+		DirectX::XMStoreFloat4x4(&Mesh2.LocalToWorld, DirectX::XMMatrixIdentity());
 		std::vector<Vertex> vertices2{
 			{ { 0.0f, 0.75f * aspectRatio, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
 			{ { 0.75f, -0.75f * aspectRatio, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
@@ -205,7 +220,7 @@ void VisBuffer::LoadAssets()
 		};
 		
 		MeshConstantBuffer Mesh3 = {}; 
-		Mesh3.LocalToWorld = DirectX::XMMatrixIdentity(); 
+		DirectX::XMStoreFloat4x4(&Mesh2.LocalToWorld, DirectX::XMMatrixIdentity());
 		std::vector<Vertex> vertices3{
 			{ { 0.0f, 0.25f * aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
 			{ { 1.0f, -1.0f * aspectRatio, 0.0f }, { 1.0f, 0.0, 0.0f, 1.0f } },
