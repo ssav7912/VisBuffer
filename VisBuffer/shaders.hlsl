@@ -26,6 +26,7 @@ PSInput VSMain(float4 position: POSITION, float4 color : COLOR)
     float3 worldPos = mul(LocalToWorld, position).xyz;
     
     result.position = mul(ViewProjectionMatrix, float4(worldPos, 1.0));
+    result.position = result.position / result.position.w;
     result.color = color;
     
     return result;

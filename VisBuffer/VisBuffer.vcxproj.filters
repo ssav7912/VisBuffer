@@ -54,6 +54,9 @@
     <ClInclude Include="Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MathHelpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -77,9 +80,6 @@
     <ClCompile Include="GPUResource.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="DescriptorHeap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -87,6 +87,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MathHelpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

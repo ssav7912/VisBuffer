@@ -1,5 +1,6 @@
 #include "Camera.h"
 #include <algorithm>
+#include "MathHelpers.h"
 
 
 using namespace DirectX::SimpleMath;
@@ -7,6 +8,8 @@ void Camera::Update()
 {
 	WorldToViewMatrix = CameraTransform.Invert();
 	WorldToProjectionMatrix = ViewToProjectionMatrix * WorldToViewMatrix; 
+
+	MathHelpers::PrintMatrix(CameraTransform); 
 }
 
 void Camera::SetRotation(Quaternion Quat)
@@ -18,7 +21,7 @@ void Camera::SetRotation(Quaternion Quat)
 
 void Camera::SetPosition(Vector3 WorldPosition)
 {
-	CameraTransform *= Matrix::CreateTranslation(WorldPosition); 
+	CameraTransform.Translation(WorldPosition); 
 }
 
 void Camera::UpdateProjectionMatrix()
@@ -27,6 +30,7 @@ void Camera::UpdateProjectionMatrix()
 	//TODO: infinite Z. 
 	if (ReverseZ)
 	{
+		//ViewToProjectionMatrix = Matrix::CreateOrthographic(1, 1, NearClipPlane, FarClipPlane);
 		ViewToProjectionMatrix = Matrix::CreatePerspectiveFieldOfView(VerticalFOVRadians, AspectRatio, FarClipPlane, NearClipPlane);
 	}
 	else {
@@ -46,8 +50,11 @@ void Camera::SetLookDirection(DirectX::SimpleMath::Vector3 Forward, DirectX::Sim
 
 	Up = right.Cross(Forward);
 
-	Matrix basis{ right, Up, -Forward }; 
-	SetRotation(Quaternion::CreateFromRotationMatrix(basis)); 
+	//why does inverting right work here??
+	//need to investigate that... TODO.
+	Matrix basis{ right, Up, -Forward };
+	basis.Translation(CameraTransform.Translation());
+	CameraTransform = basis; 
 }
 
 void Camera::SetTransform(const DirectX::SimpleMath::Matrix& Transform)
@@ -74,11 +81,16 @@ void CameraController::SetHeadingPitchAndPosition(float heading, float pitch, co
 	CurrentPitch = pitch;
 	CurrentPitch = std::min(DirectX::XM_PIDIV2, CurrentPitch);
 	CurrentPitch = std::max(-DirectX::XM_PIDIV2, CurrentPitch);
+	
+	Matrix RotationY = Matrix::CreateRotationY(CurrentHeading);
+	Matrix RotationX = Matrix::CreateRotationX(CurrentPitch);
+	Matrix Basis = GetBasis(); 
 
-	Matrix Orientation = Matrix(East, Up, -North) * Matrix::CreateRotationY(CurrentHeading) * Matrix::CreateRotationX(CurrentPitch); 
+	Matrix Orientation = Basis * RotationY * RotationX; 
+	CurrentPosition = Position;
 	Orientation.Translation(Position);
-
 	ControlledCamera->SetTransform(Orientation);
+
 
 	ControlledCamera->Update();
 
@@ -87,6 +99,11 @@ void CameraController::SetHeadingPitchAndPosition(float heading, float pitch, co
 void CameraController::ApplyPositionOffset(const DirectX::SimpleMath::Vector3& Position)
 {
 	SetHeadingPitchAndPosition(CurrentHeading, CurrentPitch, CurrentPosition + Position); 
+}
+
+void CameraController::ApplyRotationOffset(float headingOffset, float pitchOffset)
+{
+	SetHeadingPitchAndPosition(CurrentHeading + headingOffset, CurrentPitch + pitchOffset, CurrentPosition); 
 }
 
 void CameraController::GetHeadingPitchAndPosition(float& outHeading, float& outPitch, DirectX::SimpleMath::Vector3& outPosition) const

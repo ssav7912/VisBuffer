@@ -21,7 +21,7 @@ void GeometryHeap::BeginAddMesh(const std::vector<Vertex>& vertices, const MeshC
 	const auto& newVBV = DefaultVertexHeap.AddMesh(vertices, CommandList); 
 	const size_t NumMeshes = MeshData.size();
 
-	MeshConstantBuffer* CBMem = static_cast<MeshConstantBuffer*>(ConstantBufferHeap.Map()); 
+	MeshConstantBuffer* CBMem = static_cast<MeshConstantBuffer*>(ConstantBufferHeap.Map());
 	std::memcpy(CBMem + (NumMeshes), &PrimitiveData, sizeof(MeshConstantBuffer));
 	ConstantBufferHeap.Unmap(); 
 	

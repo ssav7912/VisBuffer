@@ -37,3 +37,6 @@
 /VisBuffer/x64/Debug
 /x64/Debug/D3D12
 /x64/Debug
+/Main/x64/Debug
+/packages/directxtk12_desktop_win10.2025.3.21.3
+/Tests/x64/Debug

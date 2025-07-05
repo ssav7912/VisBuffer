@@ -7,6 +7,9 @@
 class Camera
 {
 public:
+
+	//initialise matrices
+	Camera() { UpdateProjectionMatrix(); Update(); };
 	void Update();
 
 	void SetRotation(DirectX::SimpleMath::Quaternion Quat);
@@ -17,7 +20,7 @@ public:
 	void SetTransform(const DirectX::SimpleMath::Matrix& Transform);
 	void SetFOV(float verticalFOVRadians) { VerticalFOVRadians = verticalFOVRadians; UpdateProjectionMatrix(); };
 	void SetAspectRatio(float aspectRatio) { AspectRatio = aspectRatio; UpdateProjectionMatrix(); };
-
+	const DirectX::SimpleMath::Matrix& GetTransform() const { return CameraTransform;  };
 	const DirectX::SimpleMath::Matrix& GetWorldToProjectionMatrix() const { return WorldToProjectionMatrix; };
 
 private:
@@ -28,10 +31,10 @@ private:
 	DirectX::SimpleMath::Matrix ViewToProjectionMatrix = DirectX::SimpleMath::Matrix::Identity;
 	DirectX::SimpleMath::Matrix WorldToProjectionMatrix = DirectX::SimpleMath::Matrix::Identity;
 
-	float VerticalFOVRadians = 60.0f;
+	float VerticalFOVRadians = DirectX::XMConvertToRadians(60.0f);
 	float AspectRatio = 16.0f / 9.0f;
-	float NearClipPlane = 0.01f;
-	float FarClipPlane = 1000.0f;
+	float NearClipPlane = 0.001f;
+	float FarClipPlane = 100000.0f;
 	bool ReverseZ = true;
 	bool InfiniteZ = false;
 };
@@ -48,8 +51,12 @@ public:
 	void OffsetHeadingPitchAndPosition(float heading, float pitch, const DirectX::SimpleMath::Vector3& Position);
 	void ApplyPositionOffset(const DirectX::SimpleMath::Vector3& Position);
 
+	void ApplyRotationOffset(float headingOffset, float pitchOffset);
+
 	bool IsControlling() const { return ControlledCamera != nullptr; };
 	const Camera& GetCamera() const { ASSERT(ControlledCamera != nullptr, "Camera must be registered!");  return *ControlledCamera.get(); };
+
+	DirectX::SimpleMath::Matrix GetBasis() const { return DirectX::SimpleMath::Matrix(East, Up, North); };
 
 private:
 
@@ -60,7 +67,7 @@ private:
 	DirectX::SimpleMath::Vector3 CurrentPosition;
 
 	//basis
-	DirectX::SimpleMath::Vector3 East = DirectX::SimpleMath::Vector3::Right;
-	DirectX::SimpleMath::Vector3 Up = DirectX::SimpleMath::Vector3::Up;
-	DirectX::SimpleMath::Vector3 North = DirectX::SimpleMath::Vector3::Forward;
+	const DirectX::SimpleMath::Vector3 East = DirectX::SimpleMath::Vector3::Right;
+	const DirectX::SimpleMath::Vector3 Up = DirectX::SimpleMath::Vector3::Up;
+	const DirectX::SimpleMath::Vector3 North = -DirectX::SimpleMath::Vector3::Forward;
 };

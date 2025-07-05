@@ -15,12 +15,20 @@ VisBuffer::VisBuffer(uint32_t width, uint32_t height, std::wstring name) : DXApp
 
 void VisBuffer::OnKeyDown(uint8_t key)
 {
+	constexpr float Delta = 0.01;
+
 	switch (key)
 	{
-	case 'W': { Camera.ApplyPositionOffset(DirectX::SimpleMath::Vector3::Forward); break; };
-	case 'S': { Camera.ApplyPositionOffset(-DirectX::SimpleMath::Vector3::Forward); break; };
-	case 'A': { Camera.ApplyPositionOffset(DirectX::SimpleMath::Vector3::Left); break; };
-	case 'D': { Camera.ApplyPositionOffset(DirectX::SimpleMath::Vector3::Right); break; }
+	case 'W': { Camera.ApplyPositionOffset(DirectX::SimpleMath::Vector3::Forward * Delta); break; };
+	case 'S': { Camera.ApplyPositionOffset(-DirectX::SimpleMath::Vector3::Forward * Delta); break; };
+	case 'A': { Camera.ApplyPositionOffset(DirectX::SimpleMath::Vector3::Left * Delta); break; };
+	case 'D': { Camera.ApplyPositionOffset(DirectX::SimpleMath::Vector3::Right * Delta); break; };
+	case 'Q': { Camera.ApplyPositionOffset(DirectX::SimpleMath::Vector3::Up * Delta); break; };
+	case 'E': { Camera.ApplyPositionOffset(DirectX::SimpleMath::Vector3::Down * Delta); break; };
+	case VK_LEFT: { Camera.ApplyRotationOffset(-1.0 * Delta, 0.0); break; };
+	case VK_RIGHT:{ Camera.ApplyRotationOffset(1.0 * Delta, 0.0); break; };
+	case VK_UP: { Camera.ApplyRotationOffset(0.0, 1.0 * Delta); break; };
+	case VK_DOWN: { Camera.ApplyRotationOffset(0.0, -1.0 * Delta); break; }
 	}
 
 }
@@ -37,7 +45,7 @@ void VisBuffer::OnUpdate()
 	DirectX::SimpleMath::Vector3 Position;
 	Camera.GetHeadingPitchAndPosition(_discard, _discard, Position);
 	GlobalConstants.CameraPosition = Position;
-	GlobalConstants.ViewProjectionMatrix = Camera.GetCamera().GetWorldToProjectionMatrix(); 
+	GlobalConstants.ViewProjectionMatrix = Camera.GetCamera().GetWorldToProjectionMatrix(); //transpose for HLSL?
 }
 
 void VisBuffer::OnRender()
@@ -173,8 +181,8 @@ void VisBuffer::LoadAssets()
 		UINT compileFlags = 0; 
 #endif
 
-		ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr));
-		ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
+		ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"../VisBuffer/shaders.hlsl").c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr));
+		ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"../VisBuffer/shaders.hlsl").c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
 
 		D3D12_INPUT_ELEMENT_DESC inputElementDescs[] = {
 			{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
@@ -204,27 +212,27 @@ void VisBuffer::LoadAssets()
 	
 	{
 		MeshConstantBuffer Mesh1 = {};
-		DirectX::XMStoreFloat4x4(&Mesh1.LocalToWorld, DirectX::XMMatrixIdentity());
+		DirectX::XMStoreFloat4x4(&Mesh1.LocalToWorld, DirectX::XMMatrixTranspose(DirectX::XMMatrixIdentity()));
 		std::vector<Vertex> vertices{
-			{ { 0.0f, 0.25f, 1.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
-			{ { 0.25f, -0.25f, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-			{ { -0.25f, -0.25f , 1.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
+			{ { 0.0f, 0.25f, -5.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+			{ { 0.25f, -0.25f, -5.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+			{ { -0.25f, -0.25f , -5.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
 		};
 
 		MeshConstantBuffer Mesh2 = {};
-		DirectX::XMStoreFloat4x4(&Mesh2.LocalToWorld, DirectX::XMMatrixIdentity());
+		DirectX::XMStoreFloat4x4(&Mesh2.LocalToWorld, DirectX::XMMatrixTranspose(DirectX::XMMatrixIdentity()));
 		std::vector<Vertex> vertices2{
-			{ { 0.0f, 0.75f * aspectRatio, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-			{ { 0.75f, -0.75f * aspectRatio, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-			{ { -0.75f, -0.75f * aspectRatio, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } }
+			{ { 0.0f, 0.75f , -5.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+			{ { 0.75f, -0.75f, -5.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+			{ { -0.75f, -0.75f, -5.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } }
 		};
 		
 		MeshConstantBuffer Mesh3 = {}; 
-		DirectX::XMStoreFloat4x4(&Mesh2.LocalToWorld, DirectX::XMMatrixIdentity());
+		DirectX::XMStoreFloat4x4(&Mesh3.LocalToWorld, DirectX::XMMatrixTranspose(DirectX::XMMatrixIdentity()));
 		std::vector<Vertex> vertices3{
-			{ { 0.0f, 0.25f * aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
-			{ { 1.0f, -1.0f * aspectRatio, 0.0f }, { 1.0f, 0.0, 0.0f, 1.0f } },
-			{ { -1.0f, -1.0f * aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } }
+			{ { 0.0f, 5.0f, -5.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+			{ { 1.0f, -5.0f, -5.0f }, { 1.0f, 0.0, 0.0f, 1.0f } },
+			{ { -5.0f, -5.0f, -5.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } }
 		};
 
 
