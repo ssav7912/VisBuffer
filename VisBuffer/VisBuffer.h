@@ -19,7 +19,9 @@ class VisBuffer : public DXApplication
 public: 
     VisBuffer(uint32_t width, uint32_t height, std::wstring name);
 
+    virtual void OnMouseEvent(DirectX::SimpleMath::Vector2 MouseXY);
     virtual void OnKeyDown(uint8_t key) override;
+    virtual void OnMouseWheel(int16_t wheelDelta) override; 
 
     virtual void OnInit() override;
     virtual void OnUpdate() override;
@@ -49,7 +51,7 @@ private:
 
     //Global cbv, maybe move into a generic linearallocator heap later
     std::unique_ptr<UploadBuffer> GlobalConstantResource[FrameCount]; 
-    GlobalConstantBuffer GlobalConstants;
+    GlobalConstantBuffer GlobalConstants = {};
 
 
     std::shared_ptr<DescriptorHeap> ShaderDescriptors = nullptr; 
@@ -57,9 +59,9 @@ private:
 
     //sync objects
     ::uint32_t frameIndex = 0;
-    HANDLE fenceEvent;
+    HANDLE fenceEvent = nullptr;
     ComPtr<ID3D12Fence> fence;
-    uint64_t fenceValues[FrameCount];
+    uint64_t fenceValues[FrameCount] = { 0 };
 
     void LoadPipeline();
     void LoadAssets();

@@ -59,7 +59,9 @@ public:
 	const Camera& GetCamera() const { ASSERT(ControlledCamera != nullptr, "Camera must be registered!");  return *ControlledCamera.get(); };
 
 	DirectX::SimpleMath::Matrix GetBasis() const { return DirectX::SimpleMath::Matrix(East, Up, North); };
-
+	
+	float CameraSpeed = 0.01f;
+	float CameraSensitivity = 0.0018f; 
 private:
 
 	std::shared_ptr<Camera> ControlledCamera;

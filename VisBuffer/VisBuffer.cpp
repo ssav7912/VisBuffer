@@ -2,6 +2,7 @@
 #include "Win32Application.h"
 #include "ApplicationHelpers.h"
 #include "Cube.h"
+#include "MathHelpers.h"
 
 using namespace ApplicationHelpers; 
 
@@ -14,28 +15,42 @@ VisBuffer::VisBuffer(uint32_t width, uint32_t height, std::wstring name) : DXApp
 
 }
 
+void VisBuffer::OnMouseEvent(DirectX::SimpleMath::Vector2 MouseXY)
+{
+	OutputDebugStringA(MathHelpers::VectorToString(MouseXY).c_str());
+	Camera.ApplyRotationOffset(MouseXY.x * Camera.CameraSensitivity, MouseXY.y * Camera.CameraSensitivity); 
+}
+
 void VisBuffer::OnKeyDown(uint8_t key)
 {
-	constexpr float Delta = 0.01;
+	float Delta = 0.01;
 
 	switch (key)
 	{
-	case 'W': { Camera.ApplyPositionOffsetLS(DirectX::SimpleMath::Vector3::Forward * Delta); break; };
-	case 'S': { Camera.ApplyPositionOffsetLS(-DirectX::SimpleMath::Vector3::Forward * Delta); break; };
-	case 'A': { Camera.ApplyPositionOffsetLS(DirectX::SimpleMath::Vector3::Left * Delta); break; };
-	case 'D': { Camera.ApplyPositionOffsetLS(DirectX::SimpleMath::Vector3::Right * Delta); break; };
-	case 'Q': { Camera.ApplyPositionOffsetLS(DirectX::SimpleMath::Vector3::Up * Delta); break; };
-	case 'E': { Camera.ApplyPositionOffsetLS(DirectX::SimpleMath::Vector3::Down * Delta); break; };
-	case VK_LEFT: { Camera.ApplyRotationOffset(-1.0 * Delta, 0.0); break; };
-	case VK_RIGHT:{ Camera.ApplyRotationOffset(1.0 * Delta, 0.0); break; };
-	case VK_UP: { Camera.ApplyRotationOffset(0.0, 1.0 * Delta); break; };
-	case VK_DOWN: { Camera.ApplyRotationOffset(0.0, -1.0 * Delta); break; }
+	case 'W': { Camera.ApplyPositionOffsetLS(-DirectX::SimpleMath::Vector3::Forward * Camera.CameraSpeed); break; };
+	case 'S': { Camera.ApplyPositionOffsetLS(DirectX::SimpleMath::Vector3::Forward * Camera.CameraSpeed); break; };
+	case 'A': { Camera.ApplyPositionOffsetLS(DirectX::SimpleMath::Vector3::Left * Camera.CameraSpeed); break; };
+	case 'D': { Camera.ApplyPositionOffsetLS(DirectX::SimpleMath::Vector3::Right * Camera.CameraSpeed); break; };
+	case 'Q': { Camera.ApplyPositionOffsetLS(DirectX::SimpleMath::Vector3::Up * Camera.CameraSpeed); break; };
+	case 'E': { Camera.ApplyPositionOffsetLS(DirectX::SimpleMath::Vector3::Down * Camera.CameraSpeed); break; };
+	case VK_LEFT: { Camera.ApplyRotationOffset(-1.0 * Camera.CameraSpeed, 0.0); break; };
+	case VK_RIGHT:{ Camera.ApplyRotationOffset(1.0 * Camera.CameraSpeed, 0.0); break; };
+	case VK_UP: { Camera.ApplyRotationOffset(0.0, 1.0 * Camera.CameraSpeed); break; };
+	case VK_DOWN: { Camera.ApplyRotationOffset(0.0, -1.0 * Camera.CameraSpeed); break; };
 	}
+
+}
+
+void VisBuffer::OnMouseWheel(int16_t wheelDelta)
+{
+	Camera.CameraSpeed += static_cast<float>(wheelDelta) * 0.001;
 
 }
 
 void VisBuffer::OnInit()
 {
+	DXApplication::OnInit(); 
+	InputHandler.RegisterCallback({ [this](DirectX::SimpleMath::Vector2 MouseXY) { OnMouseEvent(MouseXY); } });
 	LoadPipeline();
 	LoadAssets();
 }
@@ -64,7 +79,8 @@ void VisBuffer::OnDestroy()
 {
 	WaitForGpu();
 
-	CloseHandle(fenceEvent); 
+	CloseHandle(fenceEvent);
+	DXApplication::OnDestroy(); 
 }
 
 void VisBuffer::LoadPipeline()

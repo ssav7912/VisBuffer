@@ -77,6 +77,15 @@ LRESULT Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPA
                 app->OnKeyUp(static_cast<UINT8>(wParam));
             }
             return 0;
+        case WM_MOUSEWHEEL:
+        {
+            if (app)
+            {
+                short MouseWheel = GET_WHEEL_DELTA_WPARAM(wParam);
+                app->OnMouseWheel(static_cast<int16_t>(MouseWheel)); 
+            }
+            return 0;
+        }
         case WM_PAINT:
             if (app)
             {

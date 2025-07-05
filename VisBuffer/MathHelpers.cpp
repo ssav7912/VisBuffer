@@ -29,4 +29,9 @@ std::string MathHelpers::VectorToString(const DirectX::SimpleMath::Vector3& Vect
 	return std::format("[{0},{1},{2}]\n", Vector.x, Vector.y, Vector.z); 
 }
 
+std::string MathHelpers::VectorToString(const DirectX::SimpleMath::Vector2& Vector)
+{
+	return std::format("[{0}, {1}]\n", Vector.x, Vector.y); 
+}
+
 

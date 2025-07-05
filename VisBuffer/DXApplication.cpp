@@ -24,6 +24,10 @@ void DXApplication::OnKeyUp(uint8_t key)
 {
 }
 
+void DXApplication::OnMouseWheel(int16_t wheelDelta)
+{
+}
+
 std::wstring DXApplication::GetAssetFullPath(LPCWSTR assetName)
 {
 	return assetPath + assetName;
