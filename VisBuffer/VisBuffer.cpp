@@ -1,6 +1,7 @@
 #include "VisBuffer.h"
 #include "Win32Application.h"
 #include "ApplicationHelpers.h"
+#include "Cube.h"
 
 using namespace ApplicationHelpers; 
 
@@ -236,6 +237,11 @@ void VisBuffer::LoadAssets()
 		};
 
 
+		Cube cube{};
+		MeshConstantBuffer CubeCB = {};
+		CubeCB.LocalToWorld = DirectX::SimpleMath::Matrix::CreateTranslation({ 1,1,-5});
+		Geometry->BeginAddMesh(std::vector(cube.Vertices.begin(), cube.Vertices.end()), CubeCB, commandList.Get());
+
 
 		Geometry->BeginAddMesh(vertices, Mesh1, commandList.Get());
 		Geometry->BeginAddMesh(vertices, Mesh2, commandList.Get());
@@ -305,10 +311,12 @@ void VisBuffer::PopulateCommandList()
 		const auto& VBV = Geometry->GetVertexBuffers()[i];
 		const D3D12_GPU_VIRTUAL_ADDRESS CBVOffset = Geometry->GetMeshData()[i].ConstantBufferOffset;
 		const D3D12_GPU_VIRTUAL_ADDRESS CBAddress = Geometry->GetMeshConstants().GetGpuVirtualAddress() + CBVOffset;
+		const uint32_t NumVertices = Geometry->GetMeshData()[i].NumVertices;
+
 
 		commandList->SetGraphicsRootConstantBufferView(1, CBAddress);
 		commandList->IASetVertexBuffers(0, 1, &VBV);
-		commandList->DrawInstanced(3, 1, 0, 0);
+		commandList->DrawInstanced(NumVertices, 1, 0, 0);
 	}
 	
 	auto backBarrier = CD3DX12_RESOURCE_BARRIER::Transition(renderTargets[frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);

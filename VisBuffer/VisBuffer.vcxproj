@@ -137,6 +137,7 @@ d3dcompiler.lib</AdditionalDependencies>
     <ClInclude Include="Assertions.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="ConstantBuffers.h" />
+    <ClInclude Include="Cube.h" />
     <ClInclude Include="DescriptorHeap.h" />
     <ClInclude Include="DXApplication.h" />
     <ClInclude Include="GeometryHeap.h" />

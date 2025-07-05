@@ -11,6 +11,7 @@
 
 struct Mesh
 {
+	uint32_t NumVertices; 
 	D3D12_GPU_VIRTUAL_ADDRESS VertexBufferOffset;
 	D3D12_GPU_VIRTUAL_ADDRESS VertexBufferSize;
 	D3D12_GPU_VIRTUAL_ADDRESS IndexBufferOffset;

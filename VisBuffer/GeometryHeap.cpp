@@ -26,6 +26,7 @@ void GeometryHeap::BeginAddMesh(const std::vector<Vertex>& vertices, const MeshC
 	ConstantBufferHeap.Unmap(); 
 	
 	Mesh newMesh = {};
+	newMesh.NumVertices = vertices.size(); 
 	newMesh.VertexBufferOffset = newVBV.BufferLocation - DefaultVertexHeap.GetGpuVirtualAddress();
 	newMesh.VertexBufferSize = newVBV.SizeInBytes;
 	newMesh.ConstantBufferOffset = (NumMeshes * sizeof(MeshConstantBuffer));
