@@ -7,7 +7,7 @@ using namespace DirectX::SimpleMath;
 void Camera::Update()
 {
 	WorldToViewMatrix = CameraTransform.Invert();
-	WorldToProjectionMatrix = ViewToProjectionMatrix * WorldToViewMatrix; 
+	WorldToProjectionMatrix = WorldToViewMatrix * ViewToProjectionMatrix;
 
 	OutputDebugStringA(MathHelpers::VectorToString(CameraTransform.Translation()).c_str());
 	MathHelpers::PrintMatrix(CameraTransform); 
@@ -31,7 +31,7 @@ void Camera::UpdateProjectionMatrix()
 	//TODO: infinite Z. 
 	if (ReverseZ)
 	{
-		//ViewToProjectionMatrix = Matrix::CreateOrthographic(1, 1, NearClipPlane, FarClipPlane);
+		//ViewToProjectionMatrix = Matrix::CreateOrthographic(1.777, 1, NearClipPlane, FarClipPlane);
 		ViewToProjectionMatrix = Matrix::CreatePerspectiveFieldOfView(VerticalFOVRadians, AspectRatio, FarClipPlane, NearClipPlane);
 	}
 	else {
