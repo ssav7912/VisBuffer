@@ -19,12 +19,12 @@ void VisBuffer::OnKeyDown(uint8_t key)
 
 	switch (key)
 	{
-	case 'W': { Camera.ApplyPositionOffset(DirectX::SimpleMath::Vector3::Forward * Delta); break; };
-	case 'S': { Camera.ApplyPositionOffset(-DirectX::SimpleMath::Vector3::Forward * Delta); break; };
-	case 'A': { Camera.ApplyPositionOffset(DirectX::SimpleMath::Vector3::Left * Delta); break; };
-	case 'D': { Camera.ApplyPositionOffset(DirectX::SimpleMath::Vector3::Right * Delta); break; };
-	case 'Q': { Camera.ApplyPositionOffset(DirectX::SimpleMath::Vector3::Up * Delta); break; };
-	case 'E': { Camera.ApplyPositionOffset(DirectX::SimpleMath::Vector3::Down * Delta); break; };
+	case 'W': { Camera.ApplyPositionOffsetLS(DirectX::SimpleMath::Vector3::Forward * Delta); break; };
+	case 'S': { Camera.ApplyPositionOffsetLS(-DirectX::SimpleMath::Vector3::Forward * Delta); break; };
+	case 'A': { Camera.ApplyPositionOffsetLS(DirectX::SimpleMath::Vector3::Left * Delta); break; };
+	case 'D': { Camera.ApplyPositionOffsetLS(DirectX::SimpleMath::Vector3::Right * Delta); break; };
+	case 'Q': { Camera.ApplyPositionOffsetLS(DirectX::SimpleMath::Vector3::Up * Delta); break; };
+	case 'E': { Camera.ApplyPositionOffsetLS(DirectX::SimpleMath::Vector3::Down * Delta); break; };
 	case VK_LEFT: { Camera.ApplyRotationOffset(-1.0 * Delta, 0.0); break; };
 	case VK_RIGHT:{ Camera.ApplyRotationOffset(1.0 * Delta, 0.0); break; };
 	case VK_UP: { Camera.ApplyRotationOffset(0.0, 1.0 * Delta); break; };

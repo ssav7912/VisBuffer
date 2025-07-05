@@ -9,6 +9,7 @@ void Camera::Update()
 	WorldToViewMatrix = CameraTransform.Invert();
 	WorldToProjectionMatrix = ViewToProjectionMatrix * WorldToViewMatrix; 
 
+	OutputDebugStringA(MathHelpers::VectorToString(CameraTransform.Translation()).c_str());
 	MathHelpers::PrintMatrix(CameraTransform); 
 }
 
@@ -105,6 +106,14 @@ void CameraController::ApplyRotationOffset(float headingOffset, float pitchOffse
 {
 	SetHeadingPitchAndPosition(CurrentHeading + headingOffset, CurrentPitch + pitchOffset, CurrentPosition); 
 }
+
+void CameraController::ApplyPositionOffsetLS(const DirectX::SimpleMath::Vector3& Offset)
+{
+	const auto Transformed = (this->GetCamera().GetTransform() * Matrix::CreateTranslation(Offset)).Translation();
+	CurrentPosition = Transformed; 
+	SetHeadingPitchAndPosition(CurrentHeading,CurrentPitch, Transformed); 
+}
+
 
 void CameraController::GetHeadingPitchAndPosition(float& outHeading, float& outPitch, DirectX::SimpleMath::Vector3& outPosition) const
 {

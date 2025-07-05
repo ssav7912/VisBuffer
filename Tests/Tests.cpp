@@ -52,8 +52,21 @@ namespace Tests
 			Camera.ApplyPositionOffset({ 0,1,0 });
 			NewTransform = Camera.GetCamera().GetTransform();
 			Assert::AreEqual({ 1,1,1 }, NewTransform.Translation());
-				
 			
+
+			Camera.SetHeadingPitchAndPosition(0, 0, Vector3::Zero); 
+			
+			Camera.ApplyPositionOffsetLS({ 1,0,0 });
+			NewTransform = Camera.GetCamera().GetTransform();
+			Assert::AreEqual({ 1,0,0 }, NewTransform.Translation());
+
+			Camera.ApplyPositionOffsetLS({ 0,0,1 });
+			NewTransform = Camera.GetCamera().GetTransform();
+			Assert::AreEqual({ 1,0,1 }, NewTransform.Translation());
+
+			Camera.ApplyPositionOffsetLS({ 0,1,0 });
+			NewTransform = Camera.GetCamera().GetTransform();
+			Assert::AreEqual({ 1,1,1 }, NewTransform.Translation());
 		}
 
 		

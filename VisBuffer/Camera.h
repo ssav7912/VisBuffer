@@ -34,7 +34,7 @@ private:
 	float VerticalFOVRadians = DirectX::XMConvertToRadians(60.0f);
 	float AspectRatio = 16.0f / 9.0f;
 	float NearClipPlane = 0.001f;
-	float FarClipPlane = 100000.0f;
+	float FarClipPlane = 1000.0f;
 	bool ReverseZ = true;
 	bool InfiniteZ = false;
 };
@@ -45,13 +45,15 @@ public:
 	CameraController(void): ControlledCamera(std::make_shared<Camera>()) {};
 	CameraController(std::shared_ptr<Camera> camera) : ControlledCamera(camera) {};
 
+	//applied in world space
 	void SetHeadingPitchAndPosition(float heading, float pitch, const DirectX::SimpleMath::Vector3& Position); 
 	void GetHeadingPitchAndPosition(float& outHeading, float& outPitch, DirectX::SimpleMath::Vector3& outPosition) const;
-
 	void OffsetHeadingPitchAndPosition(float heading, float pitch, const DirectX::SimpleMath::Vector3& Position);
-	void ApplyPositionOffset(const DirectX::SimpleMath::Vector3& Position);
-
+	void ApplyPositionOffset(const DirectX::SimpleMath::Vector3& Position); 
 	void ApplyRotationOffset(float headingOffset, float pitchOffset);
+
+	//applied in local (i.e. camera/view) space. 
+	void ApplyPositionOffsetLS(const DirectX::SimpleMath::Vector3& Offset);
 
 	bool IsControlling() const { return ControlledCamera != nullptr; };
 	const Camera& GetCamera() const { ASSERT(ControlledCamera != nullptr, "Camera must be registered!");  return *ControlledCamera.get(); };
