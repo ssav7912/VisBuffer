@@ -1,6 +1,9 @@
 #include "Win32Application.h"
 #include "DXApplication.h"
+#include "imgui/imgui.h"
 #include "stdafx.h"
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 HWND Win32Application::hwnd = nullptr;
 
@@ -53,6 +56,11 @@ int Win32Application::Run(DXApplication* inApplication, HINSTANCE hInstance, int
 LRESULT Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     auto app = reinterpret_cast<DXApplication*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+
+    if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
+    {
+        return true;
+    }
 
     switch (message)
     {

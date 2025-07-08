@@ -3,6 +3,9 @@
 #include "ApplicationHelpers.h"
 #include "Cube.h"
 #include "MathHelpers.h"
+#include "imgui/imgui.h"
+#include "imgui/backends/imgui_impl_dx12.h"
+#include "imgui/backends/imgui_impl_win32.h"
 
 using namespace ApplicationHelpers; 
 
@@ -53,10 +56,23 @@ void VisBuffer::OnInit()
 	InputHandler.RegisterCallback({ [this](DirectX::SimpleMath::Vector2 MouseXY) { OnMouseEvent(MouseXY); } });
 	LoadPipeline();
 	LoadAssets();
+	ImGui::CreateContext(); 
+	ImGui_ImplWin32_Init(Win32Application::GetHwnd());
+	ImGui_ImplDX12_InitInfo Init{};
+	Init.Device = this->device.Get();
+	Init.CommandQueue = this->commandQueue.Get();
+	Init.NumFramesInFlight = this->FrameCount;
+	Init.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM; 
+	//TODO: set up SRV descriptors... 
+	ImGui_ImplDX12_Init(&Init);
 }
 
 void VisBuffer::OnUpdate()
 {
+	ImGui_ImplDX12_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
 	float _discard = 0.0f;
 	DirectX::SimpleMath::Vector3 Position;
 	Camera.GetHeadingPitchAndPosition(_discard, _discard, Position);
@@ -67,6 +83,12 @@ void VisBuffer::OnUpdate()
 void VisBuffer::OnRender()
 {
 	PopulateCommandList();
+	ImGui::Render();
+
+	//TODO: put UI into another pass/cmdlist. 
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList.Get()); 
+
+
 	ID3D12CommandList* CommandLists[] = { commandList.Get() };
 	commandQueue->ExecuteCommandLists(_countof(CommandLists), CommandLists); 
 
@@ -80,6 +102,11 @@ void VisBuffer::OnDestroy()
 	WaitForGpu();
 
 	CloseHandle(fenceEvent);
+
+	ImGui_ImplDX12_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext(); 
+
 	DXApplication::OnDestroy(); 
 }
 
