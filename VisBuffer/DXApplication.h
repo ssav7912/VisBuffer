@@ -27,9 +27,9 @@ public:
 	const WCHAR* GetTitle() const { return m_title.c_str(); };
 
 	std::wstring GetAssetFullPath(LPCWSTR assetName);
+	static void GetHardwareAdapter(_In_ IDXGIFactory1* Factory, _Outptr_result_maybenull_ IDXGIAdapter1** Adapter, bool requestHighPerformanceAdapter = false);
 
 protected:
-	void GetHardwareAdapter(_In_ IDXGIFactory1* Factory, _Outptr_result_maybenull_ IDXGIAdapter1** Adapter, bool requestHighPerformanceAdapter = false); 
 
 	void SetCustomWindowText(LPCWSTR text);
 

@@ -144,6 +144,7 @@ d3dcompiler.lib</AdditionalDependencies>
     <ClInclude Include="DXApplication.h" />
     <ClInclude Include="GeometryHeap.h" />
     <ClInclude Include="GPUResource.h" />
+    <ClInclude Include="ImGuiHelper.hpp" />
     <ClInclude Include="imgui\backends\imgui_impl_dx12.h" />
     <ClInclude Include="imgui\backends\imgui_impl_win32.h" />
     <ClInclude Include="imgui\imconfig.h" />

@@ -6,6 +6,7 @@
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_dx12.h"
 #include "imgui/backends/imgui_impl_win32.h"
+#include "ImGuiHelper.hpp"
 
 using namespace ApplicationHelpers; 
 
@@ -56,15 +57,7 @@ void VisBuffer::OnInit()
 	InputHandler.RegisterCallback({ [this](DirectX::SimpleMath::Vector2 MouseXY) { OnMouseEvent(MouseXY); } });
 	LoadPipeline();
 	LoadAssets();
-	ImGui::CreateContext(); 
-	ImGui_ImplWin32_Init(Win32Application::GetHwnd());
-	ImGui_ImplDX12_InitInfo Init{};
-	Init.Device = this->device.Get();
-	Init.CommandQueue = this->commandQueue.Get();
-	Init.NumFramesInFlight = this->FrameCount;
-	Init.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM; 
-	//TODO: set up SRV descriptors... 
-	ImGui_ImplDX12_Init(&Init);
+	ImGuiHelper::Init(ShaderDescriptors, Win32Application::GetHwnd(), device.Get(), commandQueue.Get(), FrameCount);
 }
 
 void VisBuffer::OnUpdate()
@@ -103,9 +96,7 @@ void VisBuffer::OnDestroy()
 
 	CloseHandle(fenceEvent);
 
-	ImGui_ImplDX12_Shutdown();
-	ImGui_ImplWin32_Shutdown();
-	ImGui::DestroyContext(); 
+	ImGuiHelper::Destroy(); 
 
 	DXApplication::OnDestroy(); 
 }
