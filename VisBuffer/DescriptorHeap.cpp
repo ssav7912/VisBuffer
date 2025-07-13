@@ -12,10 +12,7 @@ void DescriptorHeap::Create(const std::wstring& HeapName, D3D12_DESCRIPTOR_HEAP_
 	HeapDescription.NodeMask = 1;
 
 	ApplicationHelpers::ThrowIfFailed(Device->CreateDescriptorHeap(&HeapDescription, IID_PPV_ARGS(Heap.ReleaseAndGetAddressOf())));
-
-#ifdef _DEBUG
 	Heap->SetName(HeapName.c_str());
-#endif
 
 	DescriptorSize = Device->GetDescriptorHandleIncrementSize(HeapDescription.Type);
 	NumFreeDescriptors = HeapDescription.NumDescriptors;
@@ -31,18 +28,17 @@ DescriptorHandle DescriptorHeap::Alloc(uint32_t Count)
 	ASSERT(HasSpace(Count), "Descriptor Heap is out of space. Increase the Heap size");
 
 	/*
-	Walk the free list back to front until we find a block large enough to fit all requested descriptors.
-	Assumes largest chunk of free memory is at the back, so hopefully most allocations finish quickly.
+	Walk the free list until we find a block large enough to fit all requested descriptors.
 	...average performance will degrade as memory allocations get more fragmented, worst case linear scan? 
 	*/
 	DescriptorHandle ReturnedHandle;
 	std::optional<size_t> CompactionIndex; 
-	for (size_t i : std::views::iota(0ul, FreeIndices.size()) | std::views::reverse)
+	for (size_t i = 0; i < FreeIndices.size(); i++)
 	{
 		BlockIndex& FreeBlock = FreeIndices[i]; 
 
 		ASSERT(FreeBlock.numDescriptors > 0u, "Block allocation width of 0 is not allowed.");
-		if (FreeBlock.numDescriptors > Count)
+		if (FreeBlock.numDescriptors >= Count)
 		{
 			//split the block in two.
 			BlockIndex Left = {.offset = FreeBlock.offset, .numDescriptors = Count};
@@ -50,14 +46,18 @@ DescriptorHandle DescriptorHeap::Alloc(uint32_t Count)
 		
 			FreeBlock = Right; 
 
-			ReturnedHandle = FirstHandle + Left.offset + (Left.numDescriptors * DescriptorSize);
+
+			//transform to byte addressed units rather than word (DescriptorSize) units
+			const uint32_t ptrOffset = Left.offset * DescriptorSize;
+
+			ReturnedHandle = FirstHandle + ptrOffset;
 			ReturnedHandle.numDescriptors = Count; 
 
 			//mark block for compaction/removal
 			if (Right.numDescriptors == 0)
 			{
 				ASSERT(!CompactionIndex.has_value(), "Should not need to compact more than 1 block per allocation!");
-				CompactionIndex = FreeIndices.size() - 1 - i; //flip from reverse index to forward index
+				CompactionIndex = i; //flip from reverse index to forward index
 			}
 		}
 	}
@@ -75,8 +75,10 @@ void DescriptorHeap::Free(DescriptorHandle& Handle)
 {
 	ASSERT(ValidateHandle(Handle), "Not a valid handle for this descriptor heap");
 
-	const BlockIndex newFreeBlock = { FirstHandle.GetCPUHandlePtr() - Handle.GetCPUHandlePtr(), Handle.numDescriptors};
-	const size_t NewBlockSize =  newFreeBlock.numDescriptors * DescriptorSize; 
+	const BlockIndex newFreeBlock = { (Handle.GetCPUHandlePtr() - FirstHandle.GetCPUHandlePtr()) / this->DescriptorSize, Handle.numDescriptors};
+	const size_t NewBlockSize =  newFreeBlock.numDescriptors; 
+
+
 
 	//look for potential compaction candidate
 	std::optional<size_t> InsertionIndex; 
@@ -86,14 +88,14 @@ void DescriptorHeap::Free(DescriptorHandle& Handle)
 		BlockIndex& freeBlock = FreeIndices[i]; 
 		//early-outs: we can extend an existing free block with this free block. 
 		//if the freed block bumps up on the left hand side of an existing freed block
-		if (freeBlock.offset == newFreeBlock.offset + (newFreeBlock.numDescriptors * this->DescriptorSize))
+		if (freeBlock.offset == newFreeBlock.offset + (newFreeBlock.numDescriptors))
 		{
 			freeBlock.offset = newFreeBlock.offset; 
 			freeBlock.numDescriptors += newFreeBlock.numDescriptors; 
 		}
 
 		//or on the right side
-		else if (newFreeBlock.offset == freeBlock.offset + (freeBlock.numDescriptors * DescriptorSize))
+		else if (newFreeBlock.offset == freeBlock.offset + (freeBlock.numDescriptors))
 		{
 			freeBlock.numDescriptors += newFreeBlock.numDescriptors; 
 		}
@@ -114,7 +116,7 @@ void DescriptorHeap::Free(DescriptorHandle& Handle)
 			else if (i == FreeIndices.size() - 1)
 			{
 				const BlockIndex& neighbour = FreeIndices[i - 1];
-				const size_t neighbourSize = (neighbour.numDescriptors * DescriptorSize);
+				const size_t neighbourSize = (neighbour.numDescriptors);
 				
 				if (neighbour.offset + neighbourSize < newFreeBlock.offset)
 				{
@@ -127,10 +129,10 @@ void DescriptorHeap::Free(DescriptorHandle& Handle)
 				const BlockIndex& leftNeighbour = FreeIndices[i];
 				const BlockIndex& rightNeighbour = FreeIndices[i + 1];
 				
-				const size_t leftNeighbourSize = leftNeighbour.numDescriptors * DescriptorSize;
+				const uint32_t leftNeighbourSize = leftNeighbour.numDescriptors;
 
-				const bool afterLeftNeighbour = leftNeighbour.offset + leftNeighbourSize < newFreeBlock.offset;
-				const bool beforeRightNeighbour = rightNeighbour.offset > newFreeBlock.offset + NewBlockSize; 
+				const bool afterLeftNeighbour = (leftNeighbour.offset + leftNeighbourSize) < newFreeBlock.offset;
+				const bool beforeRightNeighbour = rightNeighbour.offset > (newFreeBlock.offset + NewBlockSize);
 
 				if (afterLeftNeighbour && beforeRightNeighbour)
 				{
@@ -145,6 +147,11 @@ void DescriptorHeap::Free(DescriptorHandle& Handle)
 	if (InsertionIndex.has_value())
 	{
 		FreeIndices.insert(FreeIndices.begin() + InsertionIndex.value(), newFreeBlock);
+	}
+	//nothing free, just push a new block in. 
+	else if (FreeIndices.empty())
+	{
+		FreeIndices.push_back(newFreeBlock);
 	}
 
 	NumFreeDescriptors += Handle.numDescriptors; 

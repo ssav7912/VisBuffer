@@ -78,7 +78,7 @@ namespace Tests
 			
 			Assert::IsTrue(Descriptors->HasSpace(DescriptorSize - 3));
 			//handle 2 is allocated adjacent to handle 1
-			Assert::AreEqual(handle1Offset, handle2Offset);
+			Assert::AreEqual(handle1Offset + 1, handle2Offset);
 
 			Descriptors->Free(handle1); 
 			Assert::IsTrue(Descriptors->HasSpace(DescriptorSize - 2));
@@ -96,9 +96,44 @@ namespace Tests
 
 		}
 
+		TEST_METHOD(DescriptorHeapCompaction)
+		{
+			//make a smaller heap
+			Descriptors->Destroy();
+			Descriptors->Create(L"Unit Test Heap", D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 3);
+		
+		
+			auto handle1 = Descriptors->Alloc();
+			size_t handle1Offset = handle1.GetCPUHandlePtr(); 
+			auto handle2 = Descriptors->Alloc();
+			size_t handle2Offset = handle2.GetCPUHandlePtr(); 
+			auto handle3 = Descriptors->Alloc();
+
+			//freeing first block and reallocating places it at the start of the heap
+			//(only empty space)
+			Descriptors->Free(handle1);
+			handle1 = Descriptors->Alloc();
+			Assert::AreEqual(handle1Offset, handle1.GetCPUHandlePtr()); 
+
+			//new allocation gets placed at start of 1st index.
+			//this proves compaction is working, otherwise first free block (from back) would be at index 2. 
+			//sort of testing side effects here... may be easier if i split the free list tracker out of the DescriptorHeap interface. 
+			Descriptors->Free(handle3);
+			Descriptors->Free(handle2);
+			handle2 = Descriptors->Alloc();
+			Assert::AreEqual(handle2Offset, handle2.GetCPUHandlePtr()); 
+
+		}
+
 		TEST_METHOD_CLEANUP(Cleanup)
 		{
 			Descriptors->Destroy(); 
+		}
+
+		TEST_CLASS_CLEANUP(ClassDestroy)
+		{
+			Descriptors.reset();
+			device.Reset();
 		}
 	};
 
