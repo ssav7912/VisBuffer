@@ -27,7 +27,7 @@ void VisBuffer::OnMouseEvent(DirectX::SimpleMath::Vector2 MouseXY)
 
 void VisBuffer::OnKeyDown(uint8_t key)
 {
-	float Delta = 0.01;
+	float Delta = 0.01f;
 
 	switch (key)
 	{
@@ -37,17 +37,17 @@ void VisBuffer::OnKeyDown(uint8_t key)
 	case 'D': { Camera.ApplyPositionOffsetLS(DirectX::SimpleMath::Vector3::Right * Camera.CameraSpeed); break; };
 	case 'Q': { Camera.ApplyPositionOffsetLS(DirectX::SimpleMath::Vector3::Up * Camera.CameraSpeed); break; };
 	case 'E': { Camera.ApplyPositionOffsetLS(DirectX::SimpleMath::Vector3::Down * Camera.CameraSpeed); break; };
-	case VK_LEFT: { Camera.ApplyRotationOffset(-1.0 * Camera.CameraSpeed, 0.0); break; };
-	case VK_RIGHT:{ Camera.ApplyRotationOffset(1.0 * Camera.CameraSpeed, 0.0); break; };
-	case VK_UP: { Camera.ApplyRotationOffset(0.0, 1.0 * Camera.CameraSpeed); break; };
-	case VK_DOWN: { Camera.ApplyRotationOffset(0.0, -1.0 * Camera.CameraSpeed); break; };
+	case VK_LEFT: { Camera.ApplyRotationOffset(-1.0f * Camera.CameraSpeed, 0.0f); break; };
+	case VK_RIGHT:{ Camera.ApplyRotationOffset(1.0f * Camera.CameraSpeed, 0.0f); break; };
+	case VK_UP: { Camera.ApplyRotationOffset(0.0f, 1.0f * Camera.CameraSpeed); break; };
+	case VK_DOWN: { Camera.ApplyRotationOffset(0.0f, -1.0f * Camera.CameraSpeed); break; };
 	}
 
 }
 
 void VisBuffer::OnMouseWheel(int16_t wheelDelta)
 {
-	Camera.CameraSpeed += static_cast<float>(wheelDelta) * 0.001;
+	Camera.CameraSpeed += static_cast<float>(wheelDelta) * 0.001f;
 
 }
 
@@ -76,10 +76,7 @@ void VisBuffer::OnUpdate()
 void VisBuffer::OnRender()
 {
 	PopulateCommandList();
-	ImGui::Render();
 
-	//TODO: put UI into another pass/cmdlist. 
-	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList.Get()); 
 
 
 	ID3D12CommandList* CommandLists[] = { commandList.Get() };
@@ -314,8 +311,13 @@ void VisBuffer::PopulateCommandList()
 {
 	//TODO: fence guard, delegate?? 
 	ThrowIfFailed(commandAllocators[frameIndex]->Reset());
-	
 	ThrowIfFailed(commandList->Reset(commandAllocators[frameIndex].Get(), pipelineState.Get()));
+
+	//TODO: put UI into another pass/cmndlist. Kind of inefficient to have to set pipeline state twice. 
+	ImGui::Render();
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList.Get());
+	commandList->SetPipelineState(pipelineState.Get());
+
 	commandList->SetGraphicsRootSignature(RootSignature.Get());
 	commandList->RSSetViewports(1, &viewport);
 	commandList->RSSetScissorRects(1, &scissorRect); 
