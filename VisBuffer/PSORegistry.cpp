@@ -36,6 +36,9 @@ PSORegistry::HashedPSODescription::HashedPSODescription(const D3D12_GRAPHICS_PIP
 	//the layout array is walked and each element appended inline
 	//TODO: do the same for the RootSignature? 
 	//TODO: be smart and ignore properties if certain features are disabled
+
+	//i might be stupid? Could just wrap the PSO desc in a struct and zero memory before allowing users to fiddle with it...  
+
 	std::vector<std::byte> serialisedDescription;
 	serialisedDescription.reserve(sizeof(desc));
 	
