@@ -142,7 +142,10 @@ d3dcompiler.lib</AdditionalDependencies>
     <ClInclude Include="Cube.h" />
     <ClInclude Include="DescriptorHeap.h" />
     <ClInclude Include="DXApplication.h" />
+    <ClInclude Include="FNV1Hash.h" />
     <ClInclude Include="GeometryHeap.h" />
+    <ClInclude Include="GLTFHeap.h" />
+    <ClInclude Include="GLTFImporter.h" />
     <ClInclude Include="GPUResource.h" />
     <ClInclude Include="ImGuiHelper.hpp" />
     <ClInclude Include="imgui\backends\imgui_impl_dx12.h" />
@@ -156,11 +159,18 @@ d3dcompiler.lib</AdditionalDependencies>
     <ClInclude Include="imgui\misc\cpp\imgui_stdlib.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="MathHelpers.h" />
+    <ClInclude Include="PSORegistry.h" />
+    <ClInclude Include="Scene.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="tinygltf\json.hpp" />
+    <ClInclude Include="tinygltf\stb_image.h" />
+    <ClInclude Include="tinygltf\stb_image_write.h" />
+    <ClInclude Include="tinygltf\tiny_gltf.h" />
     <ClInclude Include="UploadBuffer.h" />
     <ClInclude Include="VertexHeap.h" />
     <ClInclude Include="VisBuffer.h" />
     <ClInclude Include="Win32Application.h" />
+    <ClInclude Include="World\Model.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="imgui\misc\debuggers\imgui.natstepfilter" />
@@ -170,7 +180,10 @@ d3dcompiler.lib</AdditionalDependencies>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="DescriptorHeap.cpp" />
     <ClCompile Include="DXApplication.cpp" />
+    <ClCompile Include="FNV1Hash.cpp" />
     <ClCompile Include="GeometryHeap.cpp" />
+    <ClCompile Include="GLTFHeap.cpp" />
+    <ClCompile Include="GLTFImporter.cpp" />
     <ClCompile Include="GPUResource.cpp" />
     <ClCompile Include="imgui\backends\imgui_impl_dx12.cpp" />
     <ClCompile Include="imgui\backends\imgui_impl_win32.cpp" />
@@ -182,10 +195,12 @@ d3dcompiler.lib</AdditionalDependencies>
     <ClCompile Include="imgui\misc\cpp\imgui_stdlib.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="MathHelpers.cpp" />
+    <ClCompile Include="PSORegistry.cpp" />
     <ClCompile Include="UploadBuffer.cpp" />
     <ClCompile Include="VertexHeap.cpp" />
     <ClCompile Include="VisBuffer.cpp" />
     <ClCompile Include="Win32Application.cpp" />
+    <ClCompile Include="World\Model.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders.hlsl">

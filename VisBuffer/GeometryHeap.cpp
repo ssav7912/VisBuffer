@@ -2,6 +2,7 @@
 #include "ApplicationHelpers.h"
 #include "UploadBuffer.h"
 #include "Assertions.h"
+#include "World/Model.h"
 
 
 using namespace ApplicationHelpers;
@@ -14,6 +15,9 @@ void GeometryHeap::Create(const std::wstring& name, size_t InitialNumElements)
 
 	const size_t ConstantBufferSize = InitialNumElements * sizeof(MeshConstantBuffer); 
 	ConstantBufferHeap.Create(L"Default Constant Buffer Heap", ConstantBufferSize); 
+
+	constexpr size_t hundredMegs = 100 * 1024 * 1024;
+	DefaultGLTFHeap.Create(L"GLTF Heap", hundredMegs);
 }
 
 void GeometryHeap::BeginAddMesh(const std::vector<Vertex>& vertices, const MeshConstantBuffer& PrimitiveData, ID3D12GraphicsCommandList2* CommandList)
@@ -25,7 +29,7 @@ void GeometryHeap::BeginAddMesh(const std::vector<Vertex>& vertices, const MeshC
 	std::memcpy(CBMem + (NumMeshes), &PrimitiveData, sizeof(MeshConstantBuffer));
 	ConstantBufferHeap.Unmap(); 
 	
-	Mesh newMesh = {};
+	MeshGPUData newMesh = {};
 	newMesh.NumVertices = vertices.size(); 
 	newMesh.VertexBufferOffset = newVBV.BufferLocation - DefaultVertexHeap.GetGpuVirtualAddress();
 	newMesh.VertexBufferSize = newVBV.SizeInBytes;

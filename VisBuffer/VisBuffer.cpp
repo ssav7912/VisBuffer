@@ -7,6 +7,7 @@
 #include "imgui/backends/imgui_impl_dx12.h"
 #include "imgui/backends/imgui_impl_win32.h"
 #include "ImGuiHelper.hpp"
+#include "World/Model.h"
 
 using namespace ApplicationHelpers; 
 
@@ -191,6 +192,7 @@ void VisBuffer::LoadAssets()
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
 
 		CD3DX12_ROOT_PARAMETER1 RootConstants[NUMROOTCONSTANTS] = {};
+		//per frame and per draw root constants
 		RootConstants[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE);
 		RootConstants[1].InitAsConstantBufferView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE); 
 
@@ -278,6 +280,13 @@ void VisBuffer::LoadAssets()
 		Geometry->BeginAddMesh(vertices, Mesh2, commandList.Get());
 		Geometry->BeginAddMesh(vertices, Mesh3, commandList.Get());
 
+		auto gltf = Model::LoadGLB("../Assets/vase.glb");
+
+		{
+			auto models = Model::LoadMesh(gltf, Geometry.get(), commandList.Get());
+			std::move(models.begin(), models.end(), std::back_inserter(SceneGraph->Meshes));
+			
+		}
 
 		ThrowIfFailed(commandList->Close());
 
@@ -305,6 +314,7 @@ void VisBuffer::LoadAssets()
 
 	WaitForGpu(); //wait for the copy to complete before moving to rendering...
 	Geometry->EndAddMesh(); //clear upload heaps. 
+	Geometry->DefaultGLTFHeap.EndUploads();
 }
 
 void VisBuffer::PopulateCommandList()
@@ -313,11 +323,7 @@ void VisBuffer::PopulateCommandList()
 	ThrowIfFailed(commandAllocators[frameIndex]->Reset());
 	ThrowIfFailed(commandList->Reset(commandAllocators[frameIndex].Get(), pipelineState.Get()));
 
-	//TODO: put UI into another pass/cmndlist. Kind of inefficient to have to set pipeline state twice. 
-	ImGui::Render();
-	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList.Get());
 	commandList->SetPipelineState(pipelineState.Get());
-
 	commandList->SetGraphicsRootSignature(RootSignature.Get());
 	commandList->RSSetViewports(1, &viewport);
 	commandList->RSSetScissorRects(1, &scissorRect); 
@@ -341,6 +347,7 @@ void VisBuffer::PopulateCommandList()
 
 	commandList->SetGraphicsRootConstantBufferView(0, GlobalConstantResource[frameIndex]->GetGpuVirtualAddress());
 
+	//old geometry heap
 	ASSERT(Geometry->GetMeshData().size() == Geometry->GetVertexBuffers().size(), "Num elements in Constant buffer and vertex buffer do not match!");
 	for (size_t i = 0; i < Geometry->GetMeshData().size(); i++)
 	{
@@ -354,9 +361,41 @@ void VisBuffer::PopulateCommandList()
 		commandList->IASetVertexBuffers(0, 1, &VBV);
 		commandList->DrawInstanced(NumVertices, 1, 0, 0);
 	}
+
+	//new gltf heap
+	for (const auto& model : SceneGraph->Meshes)
+	{
+		for (const auto& section : model->Sections)
+		{
+
+			D3D12_VERTEX_BUFFER_VIEW VBV{};
+			VBV.BufferLocation = Geometry->DefaultGLTFHeap.GetAddress(section.Vertices);
+			VBV.SizeInBytes = section.Vertices.LengthInBytes;
+			VBV.StrideInBytes = section.Vertices.StrideInBytes;
+
+			D3D12_INDEX_BUFFER_VIEW IBV{};
+			IBV.BufferLocation = Geometry->DefaultGLTFHeap.GetAddress(section.Indices);
+			IBV.SizeInBytes = section.Indices.LengthInBytes;
+			IBV.Format = BufferView::ToDXGIFormat(section.Indices.ElemType, section.Indices.ComponentType);
+
+
+			Geometry->DefaultGLTFHeap.TransitionState(D3D12_RESOURCE_STATE_INDEX_BUFFER | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, commandList.Get());
+			commandList->IASetIndexBuffer(&IBV);
+			commandList->IASetVertexBuffers(0, 1, &VBV);
+			commandList->DrawInstanced(section.Vertices.Nmembers, 1, 0, 0);
+		}
+
+	}
+
+
+	//TODO: put UI into another pass/cmndlist. Kind of inefficient to have to set pipeline state twice. 
+	ImGui::Render();
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList.Get());
 	
 	auto backBarrier = CD3DX12_RESOURCE_BARRIER::Transition(renderTargets[frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	commandList->ResourceBarrier(1, &backBarrier); 
+
+
 
 	ThrowIfFailed(commandList->Close()); 
 }

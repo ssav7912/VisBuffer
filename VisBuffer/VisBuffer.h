@@ -4,6 +4,7 @@
 #include "GeometryHeap.h"
 #include <memory>
 #include "Camera.h"
+#include "Scene.h"
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -56,6 +57,8 @@ private:
 
     std::shared_ptr<DescriptorHeap> ShaderDescriptors = nullptr; 
     std::unique_ptr<GeometryHeap> Geometry = nullptr;
+
+    std::unique_ptr<Scene> SceneGraph = std::make_unique<Scene>();
 
     //sync objects
     ::uint32_t frameIndex = 0;
